@@ -720,7 +720,11 @@ make validate-ansible</code></pre>
         if (!def) return;
 
         el.addEventListener('mouseenter', () => {
-          tooltip.innerHTML = `<strong>${term}</strong>${def}`;
+          tooltip.textContent = '';
+          const strong = document.createElement('strong');
+          strong.textContent = term;
+          tooltip.appendChild(strong);
+          tooltip.appendChild(document.createTextNode(def));
           tooltip.classList.add('visible');
         });
 

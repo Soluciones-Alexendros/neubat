@@ -33,6 +33,13 @@ describe('routes/install', () => {
             .expect(400);
     });
 
+    test('POST /api/install rechaza perfil con traversal', async () => {
+        await request(app)
+            .post('/api/install')
+            .send({ profile: '../package' })
+            .expect(400);
+    });
+
     test('GET /api/config/:token devuelve la configuración', async () => {
         const create = await request(app)
             .post('/api/install')

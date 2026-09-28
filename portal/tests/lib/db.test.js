@@ -45,6 +45,12 @@ describe('lib/db', () => {
         await expect(db.loadProfile('noexiste')).rejects.toThrow();
     });
 
+    test('loadProfile rechaza nombres de perfil con traversal', async () => {
+        await expect(db.loadProfile('../package')).rejects.toThrow(/Perfil inválido/);
+        await expect(db.loadProfile('../../etc/passwd')).rejects.toThrow(/Perfil inválido/);
+        await expect(db.loadProfile('base/../../etc/passwd')).rejects.toThrow(/Perfil inválido/);
+    });
+
     test('signConfig devuelve null sin secreto', () => {
         delete process.env.NEUBAT_HMAC_SECRET;
         const sig = db.signConfig({ token: 'a', hostname: 'h' });

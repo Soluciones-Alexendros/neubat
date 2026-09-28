@@ -106,6 +106,7 @@ app.use('/api', (req, res) => {
 
 // Fallback SPA (React app)
 app.get('*', (req, res) => {
+    // codeql[js/missing-rate-limiting] Esta ruta siempre sirve el mismo public/index.html; no hay acceso al FS sobre entrada del usuario.
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 

@@ -97,6 +97,7 @@ perfiles `configs/*.json` en `make validate`.
 | M11 | Validación de esquema de perfiles `configs/*.json` en `make validate` + test de firma con `aur_packages` | Parcial (test de firma con `aur_packages` Hecho; validación de esquema Pendiente) |
 | M12 | CSP activa con `helmet` (hash del script inline de tema; `upgrade-insecure-requests` desactivado para no romper el portal local por HTTP) | Hecho |
 | M13 | Endurecer CI de seguridad: gitleaks, osv-scanner y enforcement de acciones fijadas por SHA en `security.yml` | Hecho |
+| M14 | Cerrar las 10 alertas de code-scanning abiertas: path-injection en `loadProfile`/`configPathFor`, XSS reflejado/DOM, rate-limiting en `/boot`, falso positivo de HMAC | Hecho (28-sep-2026) |
 
 ### Complementos (diseño y documentación)
 

@@ -2,12 +2,18 @@
 
 const request = require('supertest');
 const app = require('../../server');
+const db = require('../../lib/db');
 const { resetAllRateLimiters } = require('../../lib/rate-limit');
 
 describe('rate limit de rutas sensibles', () => {
-    beforeEach(() => {
+    beforeAll(async () => {
+        await db.initStorage();
+    });
+
+    beforeEach(async () => {
         delete process.env.NEUBAT_DISABLE_RATE_LIMIT;
         resetAllRateLimiters();
+        await db.initStorage();
     });
 
     afterAll(() => {
@@ -44,6 +50,20 @@ describe('rate limit de rutas sensibles', () => {
             last = await request(app)
                 .post('/api/account/absorb')
                 .send({ code: 'inexistente', inventory: { packages: [] } });
+        }
+
+        expect(last.status).toBe(429);
+    });
+
+    test('GET /boot/:token responde 429 tras el máximo', async () => {
+        const create = await request(app)
+            .post('/api/install')
+            .send({ profile: 'base' })
+            .expect(200);
+
+        let last;
+        for (let i = 0; i < 101; i += 1) {
+            last = await request(app).get(create.body.boot_url);
         }
 
         expect(last.status).toBe(429);
