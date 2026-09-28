@@ -23,6 +23,7 @@
     "portal/*.js": "node --check",
     "portal/routes/*.js": "node --check",
     "portal/lib/*.js": "node --check",
+    "portal/tests/**/*.js": "node --check",
     "portal/frontend/src/**/*.{ts,tsx,js,jsx}": "sh -c 'if [ -d portal/frontend/node_modules ]; then cd portal/frontend && npx oxlint >/dev/null; else echo \"oxlint omitido (sin node_modules del frontend)\"; fi' --",
     "{configs,portal/catalog,portal/e2e}/**/*.json": "sh -c 'for f do python3 -m json.tool \"$f\" >/dev/null || exit 1; done' --",
     "package.json": "sh -c 'python3 -m json.tool package.json >/dev/null'"

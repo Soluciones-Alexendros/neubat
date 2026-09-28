@@ -60,18 +60,34 @@ function hmacSecret() {
     return process.env.NEUBAT_HMAC_SECRET || '';
 }
 
-// Forma canónica de un objeto anidado (claves ordenadas). Ausente → ''.
-// Debe coincidir con scripts/20-archinstall.sh (verify_config_signature).
+// Serialización JSON canónica y recursiva: claves ordenadas en todos los
+// niveles, sin espacios. Es la base estable de la firma HMAC y debe producir
+// exactamente lo mismo que json.dumps(value, sort_keys=True, separators=(',',':'))
+// en scripts/20-archinstall.sh (verify_config_signature).
+function canonicalJson(value) {
+    if (value === null || typeof value !== 'object') {
+        return JSON.stringify(value);
+    }
+    if (Array.isArray(value)) {
+        return `[${value.map(canonicalJson).join(',')}]`;
+    }
+    const keys = Object.keys(value).sort();
+    return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalJson(value[k])}`).join(',')}}`;
+}
+
+// Forma canónica de un objeto (claves ordenadas, recursivo). Ausente → ''.
+// Un objeto vacío produce '{}' (distinto de ausente).
 function canonicalObject(value) {
     if (value == null || typeof value !== 'object' || Array.isArray(value)) {
         return '';
     }
-    const keys = Object.keys(value).sort();
-    return keys.map((k) => `${k}=${value[k] == null ? '' : String(value[k])}`).join(',');
+    return canonicalJson(value);
 }
 
 // Payload determinista usado para la firma. Debe coincidir exactamente con
-// la reconstrucción que hace el instalador en scripts/20-archinstall.sh.
+// la reconstrucción que hace el instalador en scripts/20-archinstall.sh:
+// token|machine_id|hostname|username|desktop|password|disk|timezone|locale|
+// keyboard|packages(order)|aur_packages(order)|services(order)|encryption|snapshots|features
 function signingPayload(config) {
     const parts = [
         String(config.token || ''),
@@ -85,9 +101,11 @@ function signingPayload(config) {
         String(config.locale || ''),
         String(config.keyboard || ''),
         ...(Array.isArray(config.packages) ? [...config.packages].sort() : []),
+        ...(Array.isArray(config.aur_packages) ? [...config.aur_packages].sort() : []),
         ...(Array.isArray(config.services) ? [...config.services].sort() : []),
         canonicalObject(config.encryption),
-        canonicalObject(config.snapshots)
+        canonicalObject(config.snapshots),
+        canonicalObject(config.features)
     ];
     return parts.join('|');
 }

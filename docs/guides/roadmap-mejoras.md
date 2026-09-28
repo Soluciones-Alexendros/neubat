@@ -17,11 +17,11 @@ absorb de sistemas existentes (`neubat-absorb.sh`), build de ISO con mkarchiso.
 
 Deuda y riesgos:
 
-- Los flags `features.{ssh,firewall,automatic_updates,backup}` de `configs/production.json`
-  existen solo en el JSON: Ansible los declara en defaults sin tareas y los scripts bash
-  no los leen.
-- La firma HMAC no cubre `aur_packages` ni `features` (el `signingPayload` es un subconjunto
-  fijo de campos). Es coherente, pero debe documentarse como contrato.
+- `features.ssh` de `configs/production.json` ya lo lee `20-archinstall.sh` y lo aplica
+  `30-postinstall.sh` (gate de `sshd`). `features.{firewall,automatic_updates,backup}`
+  siguen pendientes de implementación real; el instalador avisa si están activos.
+- La firma HMAC cubre ya `aur_packages` y `features` (además de `encryption`/`snapshots`),
+  con serialización JSON canónica idéntica en JS y Python. Contrato en `ARCHITECTURE.md`.
 - Ansible first-boot repite trabajo ya hecho por `30-postinstall.sh`/`40-portal-deploy.sh`
   (crear usuario, instalar paquetes, desplegar portal). Alinear alcance.
 - El motor archinstall queda opt-in (`NEUBAT_USE_ARCHINSTALL=1`); el camino por defecto es
@@ -35,8 +35,9 @@ server/lib/routes.
 
 Deuda:
 
-- Validación manual sin esquema en `POST /api/install` (hostname, username, packages
-  pasan tal cual).
+- Validación de entrada en `POST /api/install` (hostname RFC-1123, username, locale,
+  keyboard, timezone, desktop y nombres de paquete con allowlist/regex) → 400. El heredoc
+  de `30-postinstall.sh` ya no expande variables del shell live (RCE cerrado).
 - Persistencia JSON sin lock: el patrón read-write-write en `routes/install.js` y
   `lib/users.js` puede perder registros bajo concurrencia.
 - Sesiones sin GC de caducadas; rate limiter en memoria sin eviction.

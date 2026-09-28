@@ -20,6 +20,17 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.disable('x-powered-by');
+
+// Detrás de un proxy inverso, habilita la confianza en X-Forwarded-For para que
+// req.ip sea la IP real del cliente (afecta al rate limiting). Por defecto OFF:
+// confiar en la cabecera sin proxy delante permitiría falsear la IP.
+// Valores: NEUBAT_TRUST_PROXY=1|true (todos), o un número de saltos (p. ej. 1),
+// o una lista de IPs/subredes separadas por comas.
+const TRUST_PROXY = process.env.NEUBAT_TRUST_PROXY;
+if (TRUST_PROXY) {
+    app.set('trust proxy', TRUST_PROXY === '1' || TRUST_PROXY === 'true' ? true : TRUST_PROXY);
+}
+
 app.use(express.json({ limit: '2mb' }));
 
 // Rate limiting simple en memoria (100 req / 15 min por IP)

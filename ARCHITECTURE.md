@@ -64,6 +64,7 @@ ansible/           first-boot (ConditionFirstBoot)
 | Perfil JSON | `configs/*.json` | PR + docs/guides/packages.md |
 | Token de instalación | hex 32 chars | `configPathFor()` — no relajar |
 | Firma de config | `NEUBAT_HMAC_SECRET` | Entorno portal + live (nunca en git) |
+| Esquema canónico de firma | `signingPayload()` (`portal/lib/db.js`) ↔ verificador Python (`scripts/20-archinstall.sh`) | PR coordinado; serialización JSON canónica (claves ordenadas) idéntica en ambos lados |
 | Tokens DTCG OKLCH | `portal/frontend/tokens/` v1.0 | `tokens/CONTRACT.md`; `make smoke` comprueba contraste |
 
 ## 5. Calidad
@@ -80,7 +81,7 @@ ansible/           first-boot (ConditionFirstBoot)
 - **NVMe-safe**: `part_name()` resuelve `/dev/sda1` vs `/dev/nvme0n1p1`.
 - **btrfs + zstd**: compresión transparente y `noatime` para SSD.
 - **Perfiles declarativos**: los JSON definen paquetes y servicios; el portal los extiende sin tocar el instalador.
-- **HMAC-SHA256**: integridad de la config en tránsito.
+- **HMAC-SHA256**: integridad de la config en tránsito. El payload se serializa como JSON canónico (claves ordenadas, `true`/`false` en minúscula) y cubre `token, machine_id, hostname, username, desktop, password, disk, timezone, locale, keyboard, packages, aur_packages, services, encryption, snapshots, features`.
 - **LUKS2 opcional**: `keyfile` (desatendido) o passphrase interactiva.
 
 ## 7. No-objetivos

@@ -1,7 +1,10 @@
 'use strict';
 
 const fs = require('fs').promises;
+const fsSync = require('fs');
+const os = require('os');
 const path = require('path');
+const { execFileSync } = require('child_process');
 const db = require('../../lib/db');
 
 describe('lib/db', () => {
@@ -93,9 +96,59 @@ describe('lib/db', () => {
             encryption: { method: 'keyfile', enabled: true },
             snapshots: { enabled: true }
         });
-        expect(withEnc).toContain('enabled=true,method=keyfile');
-        expect(withEnc).toContain('enabled=true');
+        expect(withEnc).toContain('{"enabled":true,"method":"keyfile"}');
+        expect(withEnc).toContain('{"enabled":true}');
         expect(withEnc).not.toBe(without);
+    });
+
+    test('firma HMAC JS es verificable por el verificador Python del instalador (con anidados y booleanos)', () => {
+        const scriptPath = path.join(__dirname, '..', '..', '..', 'scripts', '20-archinstall.sh');
+        const match = fsSync.readFileSync(scriptPath, 'utf8')
+            .match(/verify_config_signature\(\)\s*\{[\s\S]*?<<'PYEOF'\n([\s\S]*?)\nPYEOF/);
+        expect(match).not.toBeNull();
+        const verifier = match[1];
+
+        const secret = 'regression-secret';
+        process.env.NEUBAT_HMAC_SECRET = secret;
+
+        const config = {
+            token: 'a'.repeat(32),
+            machine_id: 'deadbeef',
+            hostname: 'host',
+            username: 'user',
+            desktop: 'kde',
+            password: 'secret-password',
+            disk: '/dev/nvme0n1',
+            timezone: 'Europe/Madrid',
+            locale: 'es_ES.UTF-8',
+            keyboard: 'es',
+            packages: ['b', 'a'],
+            aur_packages: ['y', 'x'],
+            services: ['sshd', 'NetworkManager'],
+            encryption: { enabled: true, method: 'keyfile', cipher: 'aes-xts-plain64', key_size: 512 },
+            snapshots: { enabled: true, cleanup: { hourly: 5, daily: 7, weekly: 2, monthly: 2 } },
+            features: { ssh: true, firewall: true }
+        };
+
+        const signed = { ...config, signature: db.signConfig(config) };
+        expect(signed.signature).toMatch(/^[0-9a-f]{64}$/);
+
+        const dir = fsSync.mkdtempSync(path.join(os.tmpdir(), 'neubat-hmac-'));
+        const validPath = path.join(dir, 'valid.json');
+        const tamperedPath = path.join(dir, 'tampered.json');
+        fsSync.writeFileSync(validPath, JSON.stringify(signed));
+        fsSync.writeFileSync(tamperedPath, JSON.stringify({
+            ...signed,
+            snapshots: { enabled: true, cleanup: { hourly: 99, daily: 7, weekly: 2, monthly: 2 } }
+        }));
+
+        try {
+            expect(() => execFileSync('python3', ['-', validPath, secret], { input: verifier })).not.toThrow();
+            expect(() => execFileSync('python3', ['-', tamperedPath, secret], { input: verifier })).toThrow();
+        } finally {
+            delete process.env.NEUBAT_HMAC_SECRET;
+            fsSync.rmSync(dir, { recursive: true, force: true });
+        }
     });
 
     test('alterar encryption invalida la firma HMAC', () => {
