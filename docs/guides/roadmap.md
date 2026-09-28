@@ -25,6 +25,7 @@
 | P2 | Firma y verificación de configuraciones (HMAC) | Dev | 3h | ✅ Hecho (22-sep-2026, PR #18); extendedido a encryption/snapshots (24-sep-2026) |
 | P3 | Métricas de instalación reportadas al portal | Dev | 2h | ✅ Hecho (22-sep-2026, PR #18) |
 | P1 | Listado de instalaciones solo con ADMIN_TOKEN | Dev | 1h | ✅ Hecho (24-sep-2026) |
+| P1 | Cerrar las 10 alertas de code-scanning abiertas (path-injection, XSS, rate-limiting, HMAC) | Dev | 3h | ✅ Hecho (28-sep-2026): allowlist de perfil en `loadProfile`, rate limiting en `/boot`, tooltip del wiki sin `innerHTML`, supresiones CodeQL con justificación |
 
 ## Objetivos de producto (implementados 24-sep-2026)
 
@@ -43,6 +44,9 @@
 
 | Prioridad | Tarea | Motivación | Estimación |
 |-----------|-------|------------|------------|
+| P1 | **Verificar el cierre de las alertas de code-scanning en el próximo scan** | Las supresiones `// codeql[...]` y los fixes (allowlist de perfil, rate limiting de `/boot`) se validan en `security.yml`; si alguna no cierra, descartarla en la UI con justificación | 1h |
+| P2 | **Limpiar warnings de oxlint del frontend** | `only-export-components`, `set-state-in-effect` y `exhaustive-deps` en `AdminPage`/`ConfigurePage` y `components/ui` | 2h |
+| P2 | **Tests frontend de AdminPage, DownloadPage y AccountPage** | Pantallas aún sin cobertura Vitest (M10) | 3h |
 | P1 | **Validación end-to-end de LUKS + snapper + HMAC en VM** | Confirmar que las nuevas fases funcionan juntas en un flujo real de instalación | 2h |
 | P2 | **Rotación automática del keyfile LUKS** | Tras el primer arranque, reemplazar el keyfile de `/boot` por una passphrase o enrolar TPM2/FIDO2 | 3h |
 | P3 | **Servidor iPXE propio con imágenes cacheadas** | Independencia del mirror upstream de Arch y arranques más rápidos/repetibles | 6h |

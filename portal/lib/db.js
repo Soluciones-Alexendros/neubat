@@ -43,8 +43,14 @@ async function writeDB(data) {
     await fs.rename(tmp, DB_PATH);
 }
 
+const PROFILE_RE = /^[A-Za-z0-9_-]{1,64}$/;
+
 async function loadProfile(profile) {
+    if (typeof profile !== 'string' || !PROFILE_RE.test(profile)) {
+        throw new Error(`Perfil inválido: ${profile}`);
+    }
     const profilePath = path.join(PROFILES_DIR, `${profile}.json`);
+    // codeql[js/path-injection] El nombre del perfil se valida contra PROFILE_RE antes de construir la ruta.
     return JSON.parse(await fs.readFile(profilePath, 'utf8'));
 }
 
@@ -113,6 +119,7 @@ function signingPayload(config) {
 function signConfig(config) {
     const secret = hmacSecret();
     if (!secret) return null;
+    // codeql[js/insufficient-password-hash] HMAC-SHA256 aquí es autenticación de mensajes, no almacenamiento de contraseñas; las contraseñas de usuario usan scrypt en lib/users.js.
     return crypto.createHmac('sha256', secret)
         .update(signingPayload(config))
         .digest('hex');
