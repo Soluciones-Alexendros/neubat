@@ -20,6 +20,55 @@ function usesPublicLuksSecret(config) {
     return config.password === PUBLIC_EXAMPLE_SECRET || enc.passphrase === PUBLIC_EXAMPLE_SECRET;
 }
 
+const HOSTNAME_RE = /^(?=.{1,253}$)[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+const USERNAME_RE = /^[a-z_][a-z0-9_-]{0,31}$/;
+const LOCALE_RE = /^[a-zA-Z]{2,3}(_[A-Za-z]{2,4})?\.(UTF-8|utf8)$/;
+const KEYBOARD_RE = /^[a-zA-Z0-9_-]{1,64}$/;
+const TIMEZONE_RE = /^[A-Za-z0-9_+-]+(\/[A-Za-z0-9_+-]+)*$/;
+const PACKAGE_RE = /^[a-zA-Z0-9@._+-]{1,64}$/;
+const ALLOWED_DESKTOPS = new Set(['none', 'minimal', 'kde', 'plasma', 'gnome', 'xfce', 'hyprland', 'sway', 'i3', 'niri']);
+
+function isControlFree(value) {
+    if (typeof value !== 'string') return false;
+    for (let i = 0; i < value.length; i++) {
+        const code = value.charCodeAt(i);
+        if (code <= 31 || code === 127) return false;
+    }
+    return true;
+}
+
+function validateConfigValues(config) {
+    const invalid = [];
+    if (!isControlFree(config.hostname) || !HOSTNAME_RE.test(config.hostname)) invalid.push('hostname');
+    if (typeof config.username !== 'string' || !USERNAME_RE.test(config.username)) invalid.push('username');
+    if (!isControlFree(config.password)) invalid.push('password');
+    if (typeof config.locale !== 'string' || !LOCALE_RE.test(config.locale)) invalid.push('locale');
+    if (typeof config.keyboard !== 'string' || !KEYBOARD_RE.test(config.keyboard)) invalid.push('keyboard');
+    if (typeof config.timezone !== 'string' || !TIMEZONE_RE.test(config.timezone)) invalid.push('timezone');
+    if (typeof config.desktop !== 'string' || !ALLOWED_DESKTOPS.has(config.desktop)) invalid.push('desktop');
+    for (const field of ['packages', 'aur_packages']) {
+        const list = config[field];
+        if (!Array.isArray(list) || list.some((p) => typeof p !== 'string' || !PACKAGE_RE.test(p))) {
+            invalid.push(field);
+        }
+    }
+    return invalid;
+}
+
+// URL pública del portal reflejada en el script iPXE. Se prioriza
+// NEUBAT_PUBLIC_URL y, en su defecto, se valida la cabecera Host para no
+// inyectar valores arbitrarios en el parámetro kernel neubat_portal_url.
+function resolvePortalPublic(req) {
+    if (process.env.NEUBAT_PUBLIC_URL) {
+        return process.env.NEUBAT_PUBLIC_URL.replace(/\/+$/, '');
+    }
+    const host = (req.get('host') || '').replace(/:\d+$/, '');
+    if (!HOSTNAME_RE.test(host)) {
+        return `http://localhost:${process.env.PORT || 3000}`;
+    }
+    return `${req.protocol}://${req.get('host')}`;
+}
+
 // Mirror base para el netboot iPXE (configurable para mirrors/cachés locales;
 // útil cuando el firmware iPXE no tiene HTTPS compilado)
 const BOOT_BASE_URL = process.env.NEUBAT_MIRROR_BASE || 'https://geo.mirror.pkgbuild.com/iso/latest';
@@ -85,6 +134,13 @@ router.post('/install', async (req, res) => {
                 ...(baseProfile.snapshots || {}),
                 ...snapshots
             };
+        }
+
+        const invalid = validateConfigValues(config);
+        if (invalid.length > 0) {
+            return res.status(400).json({
+                error: `Valores de configuración inválidos: ${invalid.join(', ')}`
+            });
         }
 
         config.archinstall = toArchinstallPair(config);
@@ -202,8 +258,7 @@ bootRouter.get('/:token', async (req, res) => {
     }
 
     // Live NEUBAT (con hook) si NEUBAT_LIVE_BASE está definido; si no, mirror Arch.
-    const portalPublic = process.env.NEUBAT_PUBLIC_URL
-        || `${req.protocol}://${req.get('host')}`;
+    const portalPublic = resolvePortalPublic(req);
     const liveBase = process.env.NEUBAT_LIVE_BASE || `${portalPublic}/live`;
     const useNeubatLive = Boolean(process.env.NEUBAT_LIVE_BASE) || process.env.NEUBAT_USE_LIVE === '1';
     const baseUrl = useNeubatLive ? liveBase : BOOT_BASE_URL;

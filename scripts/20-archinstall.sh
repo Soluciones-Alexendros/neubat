@@ -68,6 +68,27 @@ fetch_configuration() {
     # shellcheck disable=SC2034
     SNAP_KEEP_MONTHLY=$(cfg_get_nested "${NEUBAT_CONFIG_FILE}" snapshots/cleanup/monthly "2")
 
+    # Features opcionales (features/*). ssh por defecto true para no romper
+    # perfiles antiguos sin la clave features.
+    # shellcheck disable=SC2034
+    FEATURES_SSH=$(cfg_get_nested "${NEUBAT_CONFIG_FILE}" features/ssh "true")
+    # shellcheck disable=SC2034
+    FEATURES_FIREWALL=$(cfg_get_nested "${NEUBAT_CONFIG_FILE}" features/firewall "false")
+    # shellcheck disable=SC2034
+    FEATURES_AUTOMATIC_UPDATES=$(cfg_get_nested "${NEUBAT_CONFIG_FILE}" features/automatic_updates "false")
+    # shellcheck disable=SC2034
+    FEATURES_BACKUP_ENABLED=$(cfg_get_nested "${NEUBAT_CONFIG_FILE}" features/backup/enabled "false")
+
+    if [[ "${FEATURES_FIREWALL}" == "true" ]]; then
+        warning "features.firewall solicitado pero aún no implementado; configura un firewall tras el primer arranque"
+    fi
+    if [[ "${FEATURES_AUTOMATIC_UPDATES}" == "true" ]]; then
+        warning "features.automatic_updates solicitado pero aún no implementado"
+    fi
+    if [[ "${FEATURES_BACKUP_ENABLED}" == "true" ]]; then
+        warning "features.backup solicitado pero aún no implementado"
+    fi
+
     # shellcheck disable=SC2034
     LUKS_KEYFILE=""
     if [[ "${ENCRYPTION_ENABLED}" == "true" && "${ENCRYPTION_METHOD}" == "keyfile" ]]; then
@@ -111,9 +132,11 @@ sig = cfg.pop('signature', None)
 if sig is None:
     sys.exit(2)
 def canonical_object(value):
+    # JSON canónico recursivo (claves ordenadas en todos los niveles).
+    # Debe coincidir con canonicalObject() de portal/lib/db.js.
     if not isinstance(value, dict):
         return ''
-    return ','.join(f'{k}={"" if value[k] is None else str(value[k])}' for k in sorted(value))
+    return json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False)
 
 parts = [
     str(cfg.get('token', '')),
@@ -127,9 +150,11 @@ parts = [
     str(cfg.get('locale', '')),
     str(cfg.get('keyboard', '')),
     *(sorted(cfg.get('packages', [])) if isinstance(cfg.get('packages'), list) else []),
+    *(sorted(cfg.get('aur_packages', [])) if isinstance(cfg.get('aur_packages'), list) else []),
     *(sorted(cfg.get('services', [])) if isinstance(cfg.get('services'), list) else []),
     canonical_object(cfg.get('encryption')),
     canonical_object(cfg.get('snapshots')),
+    canonical_object(cfg.get('features')),
 ]
 payload = '|'.join(parts).encode()
 expected = hmac.new(secret, payload, hashlib.sha256).hexdigest()

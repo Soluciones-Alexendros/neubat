@@ -105,10 +105,15 @@ configure_system() {
         root_device="$(part_name "${DISK}" 2)"
     fi
 
-    # NOTA: el heredoc usa EOF sin comillas a propósito: las variables
-    # (HOSTNAME, USERNAME, etc.) se expanden en el entorno live antes de
-    # entrar al chroot.
-    arch-chroot /mnt /bin/bash <<EOF
+    # Las variables se pasan al chroot por el entorno. El heredoc usa un
+    # delimitador entre comillas (sin expansión en el shell live): los valores
+    # controlados por el usuario se tratan como datos, nunca como código.
+    # NEUBAT_HOSTNAME evita colisión con la variable especial HOSTNAME de bash.
+    export TIMEZONE LOCALE KEYMAP NEUBAT_VERSION NEUBAT_PROFILE NEUBAT_TOKEN \
+        ENCRYPTION_ENABLED USERNAME PASSWORD FEATURES_SSH \
+        luks_options root_device
+    export NEUBAT_HOSTNAME="${HOSTNAME}"
+    arch-chroot /mnt /bin/bash <<'EOF'
 set -e
 
 # Configuración regional
@@ -130,11 +135,11 @@ NEUBAT_ENCRYPTED=${ENCRYPTION_ENABLED:-false}
 REL
 
 # Hostname
-echo "${HOSTNAME}" > /etc/hostname
+echo "${NEUBAT_HOSTNAME}" > /etc/hostname
 cat > /etc/hosts <<HOSTS
 127.0.0.1   localhost
 ::1         localhost
-127.0.1.1   ${HOSTNAME}.local ${HOSTNAME}
+127.0.1.1   ${NEUBAT_HOSTNAME}.local ${NEUBAT_HOSTNAME}
 HOSTS
 
 # Usuario y contraseñas (parametrizadas desde la configuración)
@@ -175,7 +180,11 @@ sed -i "s|ENTRY_LUKS_OPTIONS|${luks_options}|; s|ENTRY_ROOT_DEVICE|${root_device
 
 # Servicios
 systemctl enable NetworkManager
-systemctl enable sshd
+if [[ "${FEATURES_SSH:-true}" == "true" ]]; then
+    systemctl enable sshd
+else
+    systemctl disable sshd 2>/dev/null || true
+fi
 
 # AUR helper (yay-bin) - no crítico: un fallo no aborta la instalación
 su - ${USERNAME} -c '
@@ -261,6 +270,10 @@ install_applications() {
     services=$(cfg_get "${NEUBAT_CONFIG_FILE}" services "")
     local svc
     for svc in ${services}; do
+        if [[ "${svc}" == "sshd" && "${FEATURES_SSH:-true}" != "true" ]]; then
+            warning "features.ssh desactivado; se omite el servicio sshd"
+            continue
+        fi
         arch-chroot /mnt systemctl enable "${svc}" \
             || warning "No se pudo habilitar el servicio: ${svc}"
     done

@@ -219,4 +219,71 @@ describe('routes/install', () => {
     test('GET /boot/:token inválido devuelve 404', async () => {
         await request(app).get('/boot/00000000000000000000000000000000').expect(404);
     });
+
+    test('POST /api/install rechaza hostname con metacaracteres', async () => {
+        await request(app)
+            .post('/api/install')
+            .send({ profile: 'base', hostname: 'evil$(touch /tmp/pwned)' })
+            .expect(400);
+    });
+
+    test('POST /api/install rechaza username inyectable', async () => {
+        await request(app)
+            .post('/api/install')
+            .send({ profile: 'base', username: 'bad;name' })
+            .expect(400);
+    });
+
+    test('POST /api/install rechaza password con salto de línea', async () => {
+        await request(app)
+            .post('/api/install')
+            .send({ profile: 'base', password: 'linea1\nlinea2' })
+            .expect(400);
+    });
+
+    test('POST /api/install rechaza timezone con traversal', async () => {
+        await request(app)
+            .post('/api/install')
+            .send({ profile: 'base', timezone: '../../etc/passwd' })
+            .expect(400);
+    });
+
+    test('POST /api/install rechaza locale inválido', async () => {
+        await request(app)
+            .post('/api/install')
+            .send({ profile: 'base', locale: 'es_ES; rm -rf /' })
+            .expect(400);
+    });
+
+    test('POST /api/install rechaza paquete inyectable', async () => {
+        await request(app)
+            .post('/api/install')
+            .send({ profile: 'base', packages: ['ok', 'evil;rm -rf /'] })
+            .expect(400);
+    });
+
+    test('POST /api/install rechaza desktop desconocido', async () => {
+        await request(app)
+            .post('/api/install')
+            .send({ profile: 'base', desktop: 'evil' })
+            .expect(400);
+    });
+
+    test('GET /boot usa NEUBAT_PUBLIC_URL y no refleja el Host', async () => {
+        process.env.NEUBAT_PUBLIC_URL = 'https://portal.example.com';
+        try {
+            const create = await request(app)
+                .post('/api/install')
+                .send({ profile: 'base' })
+                .expect(200);
+            const res = await request(app)
+                .get(create.body.boot_url)
+                .set('Host', 'evil.example.com')
+                .expect(200);
+            expect(res.text).toContain('set portal-url https://portal.example.com');
+            expect(res.text).not.toContain('evil.example.com');
+        } finally {
+            delete process.env.NEUBAT_PUBLIC_URL;
+        }
+    });
 });
