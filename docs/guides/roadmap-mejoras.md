@@ -88,10 +88,11 @@ con `aur_packages`.
 | M5 | Eliminar bloque muerto en `bootRouter` | Hecho |
 | M6 | Selección de paquetes acumulativa al cambiar de preset/intención (merge, no overwrite) | Hecho (D1) |
 | M7 | Validación de esquema en `POST /api/install` (hostname, username, packages) con tests | Pendiente |
-| M8 | Persistencia JSON atómica (write tmp + rename) en `install.js`/`users.js` | Pendiente |
-| M9 | GC de sesiones caducadas y eviction del rate limiter | Pendiente |
+| M8 | Persistencia JSON atómica (write tmp + rename) en `install.js`/`users.js` | Hecho |
+| M9 | GC de sesiones caducadas y eviction del rate limiter | Hecho |
 | M10 | Tests frontend de AdminPage, DownloadPage y AccountPage | Pendiente |
 | M11 | Validación de esquema de perfiles `configs/*.json` en `make validate` + test de firma con `aur_packages` | Pendiente |
+| M12 | CSP activa con `helmet` (hash del script inline de tema; `upgrade-insecure-requests` desactivado para no romper el portal local por HTTP) | Hecho |
 
 ### Complementos (diseño y documentación)
 

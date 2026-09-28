@@ -5,10 +5,17 @@
 
 const express = require('express');
 const users = require('../lib/users');
+const { createRateLimiter } = require('../lib/rate-limit');
 
 const router = express.Router();
 
-router.post('/register', async (req, res) => {
+const authLimiter = createRateLimiter({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    message: 'Demasiados intentos. Inténtalo de nuevo más tarde.'
+});
+
+router.post('/register', authLimiter, async (req, res) => {
     try {
         const { email, password, display_name: displayName } = req.body || {};
         const user = await users.createUser(email, password, displayName);
@@ -20,7 +27,7 @@ router.post('/register', async (req, res) => {
     }
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
     try {
         const { email, password } = req.body || {};
         const full = await users.findUserByEmail(email);

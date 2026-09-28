@@ -5,6 +5,7 @@ const path = require('path');
 const request = require('supertest');
 const app = require('../../server');
 const users = require('../../lib/users');
+const { resetAllRateLimiters } = require('../../lib/rate-limit');
 const { toArchinstallPair } = require('../../lib/archinstall');
 
 function cookieHeader(res) {
@@ -27,6 +28,10 @@ async function register(extra = {}) {
 describe('cuenta, sesión y archinstall', () => {
     beforeAll(async () => {
         await users.ensureUsersStore();
+    });
+
+    beforeEach(() => {
+        resetAllRateLimiters();
     });
 
     test('registro rechaza correo, contraseña corta y duplicado', async () => {
