@@ -73,6 +73,17 @@ describe('app integration', () => {
         expect(res.body).toHaveProperty('error');
     });
 
+    test('CSP permite el tema inline y las descargas, sin upgrade-insecure-requests', async () => {
+        const res = await request(app).get('/').expect(200);
+        const csp = res.headers['content-security-policy'];
+        expect(csp).toContain("script-src 'self' 'sha256-UO5IFt8KSPLWRe2U3rPhbOy7zYM9mVtQtzmfl7YVhT8='");
+        expect(csp).toContain("connect-src 'self'");
+        expect(csp).toContain('https://github.com');
+        expect(csp).toContain('https://geo.mirror.pkgbuild.com');
+        expect(csp).toContain("frame-ancestors 'none'");
+        expect(csp).not.toContain('upgrade-insecure-requests');
+    });
+
     test('rate limiting bloquea tras 100 req /api', async () => {
         const reqs = [];
         for (let i = 0; i < 102; i++) {

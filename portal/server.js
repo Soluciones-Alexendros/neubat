@@ -33,6 +33,26 @@ if (TRUST_PROXY) {
     app.set('trust proxy', TRUST_PROXY === '1' || TRUST_PROXY === 'true' ? true : TRUST_PROXY);
 }
 
+// connect-src: la página /descargar verifica la ISO con fetch() contra las URLs
+// de /api/account/releases (GitHub Releases y el mirror de Arch), que son de otro
+// origen. Sin declararlas, CSP las bloquea. NEUBAT_RELEASE_BASE y
+// NEUBAT_CSP_CONNECT_SRC permiten añadir orígenes adicionales.
+function connectSources() {
+    const sources = new Set(["'self'", 'https://github.com', 'https://objects.githubusercontent.com', 'https://release-assets.githubusercontent.com', 'https://geo.mirror.pkgbuild.com']);
+    const releaseBase = process.env.NEUBAT_RELEASE_BASE;
+    if (releaseBase) {
+        try {
+            sources.add(new URL(releaseBase).origin);
+        } catch {
+            // Base de release inválida: se ignora para no romper el arranque.
+        }
+    }
+    for (const extra of (process.env.NEUBAT_CSP_CONNECT_SRC || '').split(/\s+/)) {
+        if (extra) sources.add(extra);
+    }
+    return [...sources];
+}
+
 // CSP con los defaults de helmet. Se permite el script inline de tema de
 // index.html mediante su hash y se desactiva upgrade-insecure-requests para no
 // romper el portal local servido por HTTP (:3000) en el sistema instalado.
@@ -42,6 +62,7 @@ app.use(
             useDefaults: true,
             directives: {
                 scriptSrc: ["'self'", "'sha256-UO5IFt8KSPLWRe2U3rPhbOy7zYM9mVtQtzmfl7YVhT8='"],
+                connectSrc: connectSources(),
                 frameAncestors: ["'none'"],
                 upgradeInsecureRequests: null
             }
