@@ -53,10 +53,8 @@ SERVICE
     arch-chroot /mnt chown -R "${USERNAME}:${USERNAME}" /opt/neubat-portal /opt/neubat
     arch-chroot /mnt systemctl enable neubat-portal
 
-    # URL única de acceso (machine-id del sistema recién instalado)
-    local machine_id
-    machine_id=$(cut -c1-8 /mnt/etc/machine-id 2>/dev/null || echo "pending")
-    local portal_url="http://${HOSTNAME}.local:3000/setup/${machine_id}"
+    # URL de acceso al portal local del sistema recién instalado
+    local portal_url="http://${HOSTNAME}.local:3000/"
 
     echo "${portal_url}" > "/mnt/home/${USERNAME}/NEUBAT-URL.txt"
     arch-chroot /mnt chown "${USERNAME}:${USERNAME}" "/home/${USERNAME}/NEUBAT-URL.txt"

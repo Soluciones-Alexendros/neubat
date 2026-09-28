@@ -74,11 +74,10 @@
     daemon_reload: true
   become: true
 
-- name: Generar URL de setup
+- name: Generar URL del portal local
   ansible.builtin.shell: |
     set -o pipefail
-    machine_id=$(cat /etc/machine-id | cut -c1-8)
-    echo "http://{{ neubat_hostname }}.local:{{ neubat_portal_port }}/setup/${machine_id}" \
+    echo "http://{{ neubat_hostname }}.local:{{ neubat_portal_port }}/" \
       > "/home/{{ neubat_username }}/NEUBAT-URL.txt"
     chown "{{ neubat_username }}:{{ neubat_username }}" "/home/{{ neubat_username }}/NEUBAT-URL.txt"
   become: true

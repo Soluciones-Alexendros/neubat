@@ -325,10 +325,10 @@ Los perfiles viven en `configs/` (`base`, `production`, `developer`). Claves:
 
 ## 8. Portal local post-instalación
 
-El sistema instalado incluye `neubat-portal.service` (Node.js en :3000, usuario no-root, código en `/opt/neubat-portal`). La URL única de setup queda en `~/NEUBAT-URL.txt`:
+El sistema instalado incluye `neubat-portal.service` (Node.js en :3000, usuario no-root, código en `/opt/neubat-portal`). La URL del portal local queda en `~/NEUBAT-URL.txt`:
 
 ```
-http://<hostname>.local:3000/setup/<machine-id-corto>
+http://<hostname>.local:3000/
 ```
 
 ## 9. Validación post-instalación
