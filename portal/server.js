@@ -2,7 +2,7 @@
 'use strict';
 /**
  * NEUBAT Portal - Servidor de configuración y despliegue
- * Versión: 2.0.0
+ * Versión: 2.1.0
  */
 
 const express = require('express');
@@ -128,7 +128,7 @@ async function start() {
     app.listen(PORT, () => {
         console.log(`
     ╔══════════════════════════════════════════════════════════════╗
-    ║                    NEUBAT Portal v2.0.0                      ║
+    ║                    NEUBAT Portal v2.1.0                      ║
     ╠══════════════════════════════════════════════════════════════╣
     ║  Servidor iniciado en puerto ${String(PORT).padEnd(32)}║
     ║  Acceso local: http://localhost:${String(PORT).padEnd(29)}║

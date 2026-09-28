@@ -183,7 +183,7 @@ router.post('/copies/:id/confirm', users.requireUser, async (req, res) => {
 });
 
 router.get('/releases', async (_req, res) => {
-    const tag = process.env.NEUBAT_RELEASE_TAG || 'v2.0.0';
+    const tag = process.env.NEUBAT_RELEASE_TAG || 'v2.1.0';
     const version = tag.replace(/^v/, '');
     const base = process.env.NEUBAT_RELEASE_BASE
         || `https://github.com/Soluciones-Alexendros/neubat/releases/download/${tag}`;

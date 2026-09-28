@@ -19,7 +19,7 @@ describe('routes/status', () => {
     test('GET /api/health responde ok', async () => {
         const res = await request(app).get('/api/health').expect(200);
         expect(res.body.status).toBe('ok');
-        expect(res.body.version).toBe('2.0.0');
+        expect(res.body.version).toBe('2.1.0');
     });
 
     test('GET /api/installations sin token → 401', async () => {
