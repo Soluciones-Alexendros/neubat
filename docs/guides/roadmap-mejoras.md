@@ -60,9 +60,12 @@ nativa (`noValidate`). Huecos detectados:
 ### Docs, tests y CI
 
 Docs sólidas pero **0 ADRs registrados** (solo plantilla) y faltan runbooks operativos.
-CI: quality/test/build/smoke verdes; ISO y e2e VM opt-in. Tests bash solo cubren
-`lib/utils.sh` (bats). No hay validación de esquema de perfiles ni test de firma HMAC
-con `aur_packages`.
+CI: quality/test/build/smoke verdes; ISO y e2e VM opt-in. Tests bash cubren
+`lib/utils.sh` y la canonicalización de la firma HMAC con `aur_packages` (fixture
+compartida JS↔Python en `tests/fixtures/hmac-canonical.json`). El workflow
+`security.yml` corre actionlint, enforcement de acciones fijadas por SHA, gitleaks
+(historial completo) y osv-scanner (dependencias). Falta la validación de esquema de
+perfiles `configs/*.json` en `make validate`.
 
 ## 2. Backlog priorizado
 
@@ -91,8 +94,9 @@ con `aur_packages`.
 | M8 | Persistencia JSON atómica (write tmp + rename) en `install.js`/`users.js` | Hecho |
 | M9 | GC de sesiones caducadas y eviction del rate limiter | Hecho |
 | M10 | Tests frontend de AdminPage, DownloadPage y AccountPage | Pendiente |
-| M11 | Validación de esquema de perfiles `configs/*.json` en `make validate` + test de firma con `aur_packages` | Pendiente |
+| M11 | Validación de esquema de perfiles `configs/*.json` en `make validate` + test de firma con `aur_packages` | Parcial (test de firma con `aur_packages` Hecho; validación de esquema Pendiente) |
 | M12 | CSP activa con `helmet` (hash del script inline de tema; `upgrade-insecure-requests` desactivado para no romper el portal local por HTTP) | Hecho |
+| M13 | Endurecer CI de seguridad: gitleaks, osv-scanner y enforcement de acciones fijadas por SHA en `security.yml` | Hecho |
 
 ### Complementos (diseño y documentación)
 

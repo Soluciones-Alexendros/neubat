@@ -4,11 +4,11 @@ on:
   schedule:
     - cron: "0 6 * * 1"
   push:
-    paths:
-      - ".github/**"
+    branches:
+      - main
   pull_request:
-    paths:
-      - ".github/**"
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -31,3 +31,69 @@ jobs:
           curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash | bash
           ./actionlint -color
         shell: bash
+
+  pinned-actions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Exigir que toda acción remota esté fijada por SHA
+        run: |
+          set -euo pipefail
+          fallo=0
+          while IFS= read -r linea; do
+            ref="${linea##*@}"
+            if [[ "${ref}" =~ ^[0-9a-f]{40}$ ]]; then
+              continue
+            fi
+            echo "::error::Acción sin SHA de 40 hex: ${linea}"
+            fallo=1
+          done < <(grep -rhoE 'uses:[[:space:]]*[^[:space:]#]+@[^[:space:]#]+' .github/workflows/*.yml || true)
+          if [[ "${fallo}" -ne 0 ]]; then
+            exit 1
+          fi
+          echo "Todas las acciones remotas están fijadas por SHA."
+        shell: bash
+
+  gitleaks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GITLEAKS_VERSION: "8.30.1"
+      GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Instalar gitleaks
+        run: |
+          set -euo pipefail
+          curl -fsSL -o gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf gitleaks.tar.gz gitleaks
+          sudo install -m 0755 gitleaks /usr/local/bin/gitleaks
+        shell: bash
+      - name: Detectar secretos en el historial
+        run: gitleaks detect --source . --redact --no-banner --config .gitleaks.toml
+        shell: bash
+
+  osv-scanner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Escanear dependencias contra la base OSV
+        uses: google/osv-scanner-action/osv-scanner-action@a345acffa64b0eaede81a3d9aae6141214d9c8fc # v2.6.0
+        with:
+          scan-args: |-
+            --recursive
+            ./
