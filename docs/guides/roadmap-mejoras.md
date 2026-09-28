@@ -87,7 +87,7 @@ con `aur_packages`.
 | M4 | Whitelist de `status` en `POST /api/complete` | Hecho |
 | M5 | Eliminar bloque muerto en `bootRouter` | Hecho |
 | M6 | Selección de paquetes acumulativa al cambiar de preset/intención (merge, no overwrite) | Hecho (D1) |
-| M7 | Validación de esquema en `POST /api/install` (hostname, username, packages) con tests | Pendiente |
+| M7 | Validación de esquema en `POST /api/install` (hostname, username, packages) con tests | Hecho |
 | M8 | Persistencia JSON atómica (write tmp + rename) en `install.js`/`users.js` | Hecho |
 | M9 | GC de sesiones caducadas y eviction del rate limiter | Hecho |
 | M10 | Tests frontend de AdminPage, DownloadPage y AccountPage | Pendiente |

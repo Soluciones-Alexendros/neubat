@@ -20,10 +20,10 @@ function toArchinstallPair(profile) {
     const profileName = DESKTOP_MAP[desktopKey];
 
     const config = {
-        version: '2.8.0',
+        version: process.env.NEUBAT_ARCHINSTALL_VERSION || '2.8.0',
         'archinstall-language': 'Spanish',
         hostname: profile.hostname || 'neubat',
-        timezone: profile.timezone || 'Europe/Madrid',
+        timezone: profile.timezone || 'UTC',
         locale_config: {
             kb_layout: profile.keyboard || 'es',
             sys_lang: (profile.locale || 'es_ES.UTF-8').split('.')[0].replace('_', '-'),
@@ -43,11 +43,11 @@ function toArchinstallPair(profile) {
     };
 
     const creds = {
-        root_enc_password: profile.password || 'neubat',
+        root_enc_password: profile.password || '',
         '!users': [
             {
                 username: profile.username || 'neubat',
-                '!password': profile.password || 'neubat',
+                '!password': profile.password || '',
                 sudo: true
             }
         ]

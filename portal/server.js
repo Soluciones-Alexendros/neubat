@@ -130,8 +130,8 @@ async function start() {
     ║                    NEUBAT Portal v2.0.0                      ║
     ╠══════════════════════════════════════════════════════════════╣
     ║  Servidor iniciado en puerto ${String(PORT).padEnd(32)}║
-    ║  Acceso local: http://localhost:${String(PORT).padEnd(27)}║
-    ║  API Health:   http://localhost:${String(PORT).padEnd(27)}║
+    ║  Acceso local: http://localhost:${String(PORT).padEnd(29)}║
+    ║  API Health:   http://localhost:${String(PORT + '/api/health').padEnd(29)}║
     ╚══════════════════════════════════════════════════════════════╝
         `);
     });
