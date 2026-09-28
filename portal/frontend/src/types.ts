@@ -98,3 +98,34 @@ export interface ReleaseInfo {
   neubat: { version: string; iso_url: string; sha256_url: string };
   arch: { iso_url: string; sha256_url: string };
 }
+
+export type CatalogRole = 'programa' | 'biblioteca' | 'herramienta' | 'servicio';
+
+export type CatalogOrigin = 'extra' | 'multilib' | 'aur';
+
+/** Taxonomía cerrada de funciones (etiquetas multi-función de cada paquete). */
+export type CatalogFunction =
+  | 'internet'
+  | 'multimedia'
+  | 'audio'
+  | 'desarrollo'
+  | 'seguridad'
+  | 'red'
+  | 'escritorio'
+  | 'graficos'
+  | 'sistema'
+  | 'contenedores'
+  | 'utilidades'
+  | 'documentos'
+  | 'datos';
+
+export interface CatalogItem {
+  name: string;
+  /** id de familia en kebab-case; null = paquete suelto (sin familia). */
+  family: string | null;
+  role: CatalogRole;
+  functions: CatalogFunction[];
+  origin: CatalogOrigin;
+  summary: string;
+  aur: boolean;
+}

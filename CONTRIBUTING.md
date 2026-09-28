@@ -25,17 +25,41 @@ Rama `feat/*` / `fix/*` / `docs/*` / `chore/*` → PR contra `main`. Los agentes
 ## Antes de un PR
 
 ```bash
+npm install        # activa los hooks de git (husky), solo la primera vez
 make lint
 make test
 make smoke
+make test-e2e
 make validate
 ```
+
+### Hooks de git (husky)
+
+Instalados automáticamente con `npm install` en la raíz:
+
+- **pre-commit**: `lint-staged` — `bash -n` + `shellcheck` en `*.sh`, `node --check` en el JS del portal, `oxlint` en el frontend y JSON válido.
+- **commit-msg**: `commitlint` — exige Conventional Commits (`feat:`, `fix:`, `chore:`, …).
+- **pre-push**: `make validate && make smoke`.
+
+Para saltárselos en casos excepcionales: `git commit --no-verify` (úsalo con criterio; CI vigila lo mismo).
+
+### Monitorización de pipelines
+
+```bash
+make ci-status              # últimos runs del repo
+make ci-watch               # vigila el último run de la rama actual hasta el final
+make ci-watch RUN_ID=<id>   # vigila un run concreto
+make ci-log RUN_ID=<id>     # logs del fallo de un run
+```
+
+Si todo verde: rápido para automerge. Ver [runbook CI](docs/runbooks/ci.md).
 
 Si tocas el frontend: `make test-frontend` y `make build-frontend`.  
 Si tocas `ansible/`: `make test-ansible`.  
 Si tocas `scripts/*.sh`: `make test-bash` (requiere `bats`).
 
-`make test-vm` y `make build-iso` son opt-in (largos / Docker).
+`make test-vm`, `make build-iso`, `make validate-iso` y `make test-iso-boot`
+son opt-in (largos / Docker / QEMU).
 
 ## Reglas
 

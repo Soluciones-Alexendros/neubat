@@ -20,7 +20,7 @@ El portal declara `node: ">=22"`. Node.js 18 está fuera de soporte según el ca
 
 **No abras un issue público** si el hallazgo puede filtrar `ADMIN_TOKEN`, `NEUBAT_HMAC_SECRET`, keyfiles LUKS o facilitar una instalación manipulada.
 
-1. Preferible: [GitHub Security Advisory](https://github.com/Alexendros/neubat/security/advisories/new) en este repositorio.
+1. Preferible: [GitHub Security Advisory](https://github.com/Soluciones-Alexendros/neubat/security/advisories/new) en este repositorio.
 2. Alternativa: correo a [operaciones@alexendros.dev](mailto:operaciones@alexendros.dev).
 
 Incluye: versión o commit, componente (portal / scripts / ISO), sistema operativo, y un caso **mínimo sintético** (nunca secretos reales). Responderemos en un plazo máximo de 7 días naturales.

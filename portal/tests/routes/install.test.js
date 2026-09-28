@@ -73,6 +73,53 @@ describe('routes/install', () => {
         expect(install.hostname).toBe('test2');
     });
 
+    test('POST /api/complete acepta status failed', async () => {
+        const create = await request(app)
+            .post('/api/install')
+            .send({ profile: 'base' });
+
+        await request(app)
+            .post('/api/complete')
+            .send({ token: create.body.token, status: 'failed', error: 'sin espacio en disco' })
+            .expect(200);
+
+        const store = await db.readDB();
+        const install = store.installations.find(i => i.token === create.body.token);
+        expect(install.status).toBe('failed');
+        expect(install.error).toBe('sin espacio en disco');
+    });
+
+    test('POST /api/complete rechaza status inválido con 400', async () => {
+        const create = await request(app)
+            .post('/api/install')
+            .send({ profile: 'base' });
+
+        const res = await request(app)
+            .post('/api/complete')
+            .send({ token: create.body.token, status: 'in-progress' })
+            .expect(400);
+        expect(res.body.error).toMatch(/Estado inválido/);
+
+        const store = await db.readDB();
+        const install = store.installations.find(i => i.token === create.body.token);
+        expect(install.status).toBe('pending');
+    });
+
+    test('POST /api/complete sin status conserva el default completed', async () => {
+        const create = await request(app)
+            .post('/api/install')
+            .send({ profile: 'base' });
+
+        await request(app)
+            .post('/api/complete')
+            .send({ token: create.body.token })
+            .expect(200);
+
+        const store = await db.readDB();
+        const install = store.installations.find(i => i.token === create.body.token);
+        expect(install.status).toBe('completed');
+    });
+
     test('GET /boot/:token devuelve script iPXE', async () => {
         const create = await request(app)
             .post('/api/install')

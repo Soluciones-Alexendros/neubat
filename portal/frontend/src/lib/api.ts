@@ -1,4 +1,5 @@
 import type {
+  CatalogItem,
   HealthResponse,
   InstallRequest,
   InstallResponse,
@@ -9,6 +10,7 @@ import type {
   SystemCopy,
   User,
 } from '@/types';
+import { FALLBACK_CATALOG } from '@/lib/catalog-fallback';
 
 const API_BASE = '';
 
@@ -112,5 +114,17 @@ export const api = {
   releases: () => fetchJson<ReleaseInfo>('/api/account/releases'),
 
   profile: (name: string) =>
-    fetchJson<{ packages?: string[]; disk?: string }>(`/api/account/profiles/${encodeURIComponent(name)}`),
+    fetchJson<{ packages?: string[]; aur_packages?: string[]; disk?: string }>(
+      `/api/account/profiles/${encodeURIComponent(name)}`
+    ),
+
+  // El catálogo versionado se sirve desde portal/catalog/packages.json.
+  // Si el portal no responde (modo local/offline) se usa el mínimo embebido.
+  catalog: async (): Promise<CatalogItem[]> => {
+    try {
+      return await fetchJson<CatalogItem[]>('/api/catalog');
+    } catch {
+      return FALLBACK_CATALOG;
+    }
+  },
 };

@@ -130,7 +130,7 @@ Cuenta de usuario: registro en `/cuenta`. Absorción del sistema actual: genera 
 ### 5.2 Arrancar la máquina destino
 
 - **Por red (recomendado):** encadenar iPXE a `http://<portal>:3000/boot/<token>`. El script incluye `neubat_token`, `neubat_profile` y `neubat_portal_url`. Para cero toques, publica el live NEUBAT en `NEUBAT_LIVE_DIR` (servido en `/live`) y define `NEUBAT_USE_LIVE=1` o `NEUBAT_LIVE_BASE`. Sin live, el mirror Arch arranca pero requiere ejecutar el instalador a mano o usar la ISO NEUBAT.
-- **ISO híbrida autoinstalable:** en `/descargar` el portal verifica SHA-256 antes de guardar. También desde la [release](https://github.com/Alexendros/neubat/releases) con el `.sha256` generado por CI. Arranque:
+- **ISO híbrida autoinstalable:** en `/descargar` el portal verifica SHA-256 antes de guardar. También desde la [release](https://github.com/Soluciones-Alexendros/neubat/releases) con el `.sha256` generado por CI. Arranque:
 
   ```
   neubat_token=<token> neubat_profile=production neubat_portal_url=http://<portal>:3000

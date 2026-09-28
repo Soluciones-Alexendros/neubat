@@ -46,6 +46,27 @@ esa VM exporta `NEUBAT_ALLOW_DEFAULT_SECRETS=1` o manda otra clave.
    servicios activos, API del portal local, `NEUBAT-URL.txt`, layout NVMe,
    sudo endurecido (sin NOPASSWD).
 
+## Smoke de arranque de la ISO propia
+
+`boot_iso_smoke.py` valida la ISO **NEUBAT** generada (a diferencia de
+`neubat_vm_test.py`, que arranca la ISO oficial de Arch): extrae
+kernel/initramfs de la propia ISO, arranca QEMU/OVMF con consola serie y
+`neubat_token` en el cmdline, y verifica que el entorno live arranca y que el
+hook `neubat-autoinstall` se activa y lanza el instalador. No completa la
+instalación.
+
+```bash
+make test-iso-boot
+# o directo:
+NEUBAT_ISO=out/neubat-2.0.0-x86_64.iso python3 tests/vm/boot_iso_smoke.py
+```
+
+Requisitos: `qemu-system-x86_64`, OVMF, `pexpect`, `xorriso`, `blkid`.
+Usa `/dev/kvm` si es accesible (si no, TCG, más lento). Variables y timeout
+en la cabecera del script. Úsalo tras `make build-iso` +
+`make validate-iso` cuando cambies `iso/airootfs/`, el hook o el pipeline de
+build.
+
 ## Notas sobre validación iPXE
 
 La prueba `neubat_vm_test.py` valida la instalación con **kernel directo** (cdrom

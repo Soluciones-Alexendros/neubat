@@ -11,7 +11,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TAG="${1:-1.0.0}"
+TAG="${1:-2.0.0}"
 OUT_DIR="${ROOT_DIR}/out"
 ISO_NAME="neubat-${TAG}-x86_64.iso"
 

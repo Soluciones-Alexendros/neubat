@@ -102,7 +102,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </main>
 
       <footer className="border-t border-border py-4 text-center text-sm text-muted-foreground">
-        NEUBAT v1.0.0 · GPL-3.0 ·{' '}
+        NEUBAT v2.0.0 · GPL-3.0 ·{' '}
         <a href="/wiki.html" className="text-primary hover:underline">
           Wiki
         </a>
