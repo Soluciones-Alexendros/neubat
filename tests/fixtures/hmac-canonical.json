@@ -1,0 +1,41 @@
+{
+  "description": "Fixture canónica compartida entre la firma JS (portal/lib/db.js) y el verificador Python (scripts/20-archinstall.sh). Incluye booleanos, objetos anidados y aur_packages para fijar el contrato de serialización.",
+  "secret": "neubat-fixture-secret",
+  "config": {
+    "token": "0123456789abcdef0123456789abcdef",
+    "machine_id": "deadbeef",
+    "hostname": "neubat-fixture",
+    "username": "tester",
+    "desktop": "kde",
+    "password": "Fixture-password-123",
+    "disk": "/dev/nvme0n1",
+    "timezone": "Europe/Madrid",
+    "locale": "es_ES.UTF-8",
+    "keyboard": "es",
+    "packages": ["vim", "curl"],
+    "aur_packages": ["yay-bin", "paru"],
+    "services": ["NetworkManager", "sshd"],
+    "encryption": {
+      "enabled": true,
+      "method": "keyfile",
+      "cipher": "aes-xts-plain64",
+      "key_size": 512
+    },
+    "snapshots": {
+      "enabled": true,
+      "cleanup": {
+        "hourly": 5,
+        "daily": 7,
+        "weekly": 2,
+        "monthly": 2
+      }
+    },
+    "features": {
+      "ssh": true,
+      "firewall": true,
+      "automatic_updates": false
+    }
+  },
+  "expected_payload": "0123456789abcdef0123456789abcdef|deadbeef|neubat-fixture|tester|kde|Fixture-password-123|/dev/nvme0n1|Europe/Madrid|es_ES.UTF-8|es|curl|vim|paru|yay-bin|NetworkManager|sshd|{\"cipher\":\"aes-xts-plain64\",\"enabled\":true,\"key_size\":512,\"method\":\"keyfile\"}|{\"cleanup\":{\"daily\":7,\"hourly\":5,\"monthly\":2,\"weekly\":2},\"enabled\":true}|{\"automatic_updates\":false,\"firewall\":true,\"ssh\":true}",
+  "expected_signature": "9837f9549d062149deb4df8ecd59d6efc6e1a82fd79b90e4f4557d7b62c2dbc1"
+}

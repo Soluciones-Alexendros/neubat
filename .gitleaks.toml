@@ -1,0 +1,16 @@
+# Configuración de gitleaks para NEUBAT.
+# Extiende las reglas por defecto y excluye fixtures y documentación donde
+# aparecen credenciales ficticias de pruebas.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Credenciales ficticias de tests, e2e y documentación"
+paths = [
+  '''portal/e2e/fixtures\.ts$''',
+  '''portal/e2e/specs/''',
+  '''portal/tests/''',
+  '''tests/''',
+  '''docs/'''
+]

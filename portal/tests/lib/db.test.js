@@ -151,6 +151,20 @@ describe('lib/db', () => {
         }
     });
 
+    test('la fixture canónica compartida coincide con la firma JS', () => {
+        const fixturePath = path.join(__dirname, '..', '..', '..', 'tests', 'fixtures', 'hmac-canonical.json');
+        const fixture = JSON.parse(fsSync.readFileSync(fixturePath, 'utf8'));
+        const previous = process.env.NEUBAT_HMAC_SECRET;
+        process.env.NEUBAT_HMAC_SECRET = fixture.secret;
+        try {
+            expect(db.signingPayload(fixture.config)).toBe(fixture.expected_payload);
+            expect(db.signConfig(fixture.config)).toBe(fixture.expected_signature);
+        } finally {
+            if (previous === undefined) delete process.env.NEUBAT_HMAC_SECRET;
+            else process.env.NEUBAT_HMAC_SECRET = previous;
+        }
+    });
+
     test('alterar encryption invalida la firma HMAC', () => {
         process.env.NEUBAT_HMAC_SECRET = 'test-secret';
         const config = {
