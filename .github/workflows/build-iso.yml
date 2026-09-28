@@ -6,7 +6,12 @@ on:
       tag:
         description: 'Tag de la release (ej. 1.0.0)'
         required: true
-        default: '1.0.0'
+        default: '2.0.0'
+      boot_smoke:
+        description: 'Arrancar la ISO en QEMU tras el build (smoke de arranque, lento; requiere KVM en el runner)'
+        required: false
+        default: false
+        type: boolean
   push:
     tags:
       - 'v*'
@@ -51,6 +56,15 @@ jobs:
           sha256sum "neubat-${TAG}-x86_64.iso" > "neubat-${TAG}-x86_64.iso.sha256"
           cat "neubat-${TAG}-x86_64.iso.sha256"
 
+      - name: Validate ISO (checksum + contenido del airootfs)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xorriso squashfs-tools
+          TAG="${TAG#v}"
+          bash scripts/validate-iso.sh "out/neubat-${TAG}-x86_64.iso"
+        env:
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}
+
       - name: Upload ISO artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -70,3 +84,34 @@ jobs:
           generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Smoke de arranque de la ISO generada (opt-in: input boot_smoke). Verifica
+  # que la ISO es booteable y que el hook neubat-autoinstall se activa.
+  iso-boot-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: build-iso
+    if: github.event_name == 'workflow_dispatch' && inputs.boot_smoke == true
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Download ISO artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: neubat-iso
+          path: out
+
+      - name: Install QEMU/OVMF and Python deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86 ovmf xorriso squashfs-tools
+          pip3 install pexpect --break-system-packages || pip3 install pexpect
+
+      - name: Boot ISO smoke
+        run: |
+          TAG="${TAG#v}"
+          NEUBAT_ISO="out/neubat-${TAG}-x86_64.iso" python3 tests/vm/boot_iso_smoke.py
+        env:
+          TAG: ${{ inputs.tag }}

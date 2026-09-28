@@ -147,6 +147,54 @@ jobs:
       - name: API smoke (health + install)
         run: make smoke
 
+  e2e:
+    name: e2e (Playwright)
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            portal/package-lock.json
+            portal/frontend/package-lock.json
+            portal/e2e/package-lock.json
+
+      - name: Install portal dependencies
+        run: cd portal && npm ci
+
+      - name: Install frontend dependencies
+        run: cd portal/frontend && npm ci
+
+      - name: Install e2e dependencies
+        run: cd portal/e2e && npm ci
+
+      - name: Install Playwright Chromium
+        run: cd portal/e2e && npx playwright install --with-deps chromium
+
+      - name: Run E2E suite
+        run: make test-e2e
+        env:
+          CI: true
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-report
+          path: |
+            portal/e2e/playwright-report/
+            portal/e2e/test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
   provenance:
     name: provenance
     needs: build

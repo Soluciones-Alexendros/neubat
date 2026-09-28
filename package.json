@@ -1,0 +1,30 @@
+{
+  "name": "neubat-tooling",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Tooling de desarrollo del repo NEUBAT (hooks de git, lint-staged, commitlint). No es parte del producto.",
+  "scripts": {
+    "prepare": "husky"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2"
+  },
+  "lint-staged": {
+    "*.sh": [
+      "bash -n",
+      "sh -c 'if command -v shellcheck >/dev/null 2>&1; then shellcheck -x \"$@\"; else echo \"shellcheck no instalado; omitido\"; fi' --"
+    ],
+    "portal/*.js": "node --check",
+    "portal/routes/*.js": "node --check",
+    "portal/lib/*.js": "node --check",
+    "portal/frontend/src/**/*.{ts,tsx,js,jsx}": "sh -c 'if [ -d portal/frontend/node_modules ]; then cd portal/frontend && npx oxlint >/dev/null; else echo \"oxlint omitido (sin node_modules del frontend)\"; fi' --",
+    "{configs,portal/catalog,portal/e2e}/**/*.json": "sh -c 'for f do python3 -m json.tool \"$f\" >/dev/null || exit 1; done' --",
+    "package.json": "sh -c 'python3 -m json.tool package.json >/dev/null'"
+  }
+}

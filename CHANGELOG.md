@@ -43,6 +43,6 @@ Las versiones de producto no se generan con semantic-release. El esquema es [Sem
 
 Ver [docs/RELEASE-v1.0.0.md](docs/RELEASE-v1.0.0.md).
 
-[Unreleased]: https://github.com/Alexendros/neubat/compare/v2.0.0...HEAD
-[2.0.0]: https://github.com/Alexendros/neubat/compare/v1.0.0...v2.0.0
-[1.0.0]: https://github.com/Alexendros/neubat/releases/tag/v1.0.0
+[Unreleased]: https://github.com/Soluciones-Alexendros/neubat/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/Soluciones-Alexendros/neubat/compare/v1.0.0...v2.0.0
+[1.0.0]: https://github.com/Soluciones-Alexendros/neubat/releases/tag/v1.0.0

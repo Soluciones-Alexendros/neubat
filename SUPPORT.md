@@ -8,7 +8,7 @@
 
 ## Canal
 
-- Uso, instalación y bugs reproducibles: [issues de GitHub](https://github.com/Alexendros/neubat/issues/new/choose).
+- Uso, instalación y bugs reproducibles: [issues de GitHub](https://github.com/Soluciones-Alexendros/neubat/issues/new/choose).
 - Vulnerabilidades y secretos: [SECURITY.md](SECURITY.md). No abras un issue público.
 - Conducta: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), en privado a [operaciones@alexendros.dev](mailto:operaciones@alexendros.dev).
 

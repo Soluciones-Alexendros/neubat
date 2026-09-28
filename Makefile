@@ -1,7 +1,7 @@
 # NEUBAT - Makefile
 TAG ?= 2.0.0
 
-.PHONY: portal install-deps install-deps-frontend build-frontend validate lint test smoke test-smoke test-vm test-bash test-ansible validate-ansible lint-ansible test-frontend build-iso release
+.PHONY: portal install-deps install-deps-frontend build-frontend validate lint test smoke test-smoke test-vm test-iso-boot test-bash test-ansible validate-ansible lint-ansible test-frontend test-e2e install-deps-e2e build-iso validate-iso release ci-status ci-watch ci-log
 
 install-deps:
 	cd portal && npm install
@@ -62,7 +62,7 @@ test-bash:
 	@command -v bats >/dev/null 2>&1 && bats tests/bash/*.bats || echo "bats no instalado; omitido"
 
 validate-ansible:
-	@python3 -m json.tool configs/base.json > /dev/null && echo "OK ansible/inventory/local.yml"
+	@python3 -m json.tool configs/base.json > /dev/null && echo "OK configs/base.json"
 	@command -v ansible-playbook >/dev/null 2>&1 && cd ansible && ansible-playbook --syntax-check site.yml && echo "OK ansible/site.yml syntax" || echo "ansible-playbook no instalado; omitido"
 
 lint-ansible:
@@ -73,9 +73,43 @@ test-ansible: validate-ansible lint-ansible
 test-frontend: install-deps-frontend
 	cd portal/frontend && npm test
 
+# Suite E2E de navegador (Playwright). Ver docs/runbooks/e2e.md
+install-deps-e2e:
+	cd portal/e2e && npm install
+
+test-e2e: build-frontend install-deps-e2e
+	cd portal/e2e && npm run test:e2e
+
 # Construir ISO híbrida con autoinstalación (requiere Docker; opt-in)
 build-iso:
 	bash scripts/build-iso.sh "$(TAG)"
+
+# Validación estática de la ISO generada (checksum + contenido con xorriso; opt-in)
+validate-iso:
+	bash scripts/validate-iso.sh "out/neubat-$(TAG)-x86_64.iso"
+
+# Smoke de arranque de la ISO NEUBAT en QEMU (largo; opt-in). Ver tests/vm/README.md
+test-iso-boot:
+	python3 tests/vm/boot_iso_smoke.py
+
+# Remote GitHub (owner/repo) derivado de origin, para los targets de gh
+GH_REPO := $(shell git remote get-url origin 2>/dev/null | sed -E 's#^https://github\.com/([^/]+/[^/.]+)(\.git)?$$#\1#')
+
+# Estado de los pipelines del repo (requiere gh autenticado)
+ci-status:
+	@command -v gh >/dev/null 2>&1 || { echo "gh (GitHub CLI) no instalado o no en PATH"; exit 1; }
+	gh run list --repo "$(GH_REPO)" --limit 12
+
+# Vigila un run hasta que termina (sin RUN_ID, el último de la rama actual).
+# Sale con el estado del run: verde o rojo.
+ci-watch:
+	@command -v gh >/dev/null 2>&1 || { echo "gh (GitHub CLI) no instalado o no en PATH"; exit 1; }
+	gh run watch --repo "$(GH_REPO)" --exit-status $(RUN_ID)
+
+# Diagnóstico de un run fallido: make ci-log RUN_ID=<id>
+ci-log:
+	@test -n "$(RUN_ID)" || { echo "Uso: make ci-log RUN_ID=<id>"; exit 1; }
+	gh run view --repo "$(GH_REPO)" --log-failed $(RUN_ID)
 
 # Crear release v1.0.0 en GitHub adjuntando la ISO generada (requiere gh)
 release: build-iso

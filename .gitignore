@@ -21,6 +21,13 @@ portal/public/favicon.svg
 # Logs
 *.log
 
+# Resultados de la suite E2E (Playwright)
+portal/e2e/playwright-report/
+portal/e2e/test-results/
+
+# Hooks generados por husky (se crean con npm install)
+.husky/_/
+
 # Temporales
 *.tmp
 .DS_Store

@@ -53,7 +53,7 @@ describe('axe sobre el árbol real', () => {
         return {
           ok: true,
           json: async () => ({
-            neubat: { version: '1.0.0', iso_url: '/iso', sha256_url: '/iso.sha256' },
+            neubat: { version: '2.0.0', iso_url: '/iso', sha256_url: '/iso.sha256' },
             arch: { iso_url: '/arch', sha256_url: '/arch.sha256' },
           }),
         } as Response;

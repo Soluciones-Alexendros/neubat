@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
+import { FALLBACK_CATALOG } from '@/lib/catalog-fallback';
+import { mergeSelection, splitSelection } from '@/lib/catalog';
 import { downloadInstallJson } from '@/lib/install-config';
 import { pathAnnouncement, pathsFromRecommendations, type Intent } from '@/lib/paths';
 import { useAuth } from '@/lib/auth';
-import type { InstallRequest, InstallResponse, Recommendation } from '@/types';
+import type { CatalogItem, InstallRequest, InstallResponse, Recommendation } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SoftwareSection } from '@/components/SoftwareSection';
 import {
   Select,
   SelectContent,
@@ -29,13 +32,6 @@ const DESKTOPS = [
   { value: 'niri', label: 'niri' },
 ];
 
-const PACKAGE_GROUPS: Record<string, string[]> = {
-  base: ['base-devel', 'git', 'vim', 'htop', 'reflector'],
-  red: ['networkmanager', 'openssh', 'wireguard-tools'],
-  desarrollo: ['nodejs', 'npm', 'python', 'go', 'rust'],
-  multimedia: ['firefox', 'vlc', 'pipewire', 'wireplumber'],
-};
-
 export function ConfigurePage() {
   const { user } = useAuth();
   const [submitting, setSubmitting] = useState(false);
@@ -47,11 +43,22 @@ export function ConfigurePage() {
   const [desktop, setDesktop] = useState('kde');
   const [profile, setProfile] = useState('production');
   const [selectedPackages, setSelectedPackages] = useState<string[]>(['git', 'htop']);
-  const [packageQuery, setPackageQuery] = useState('');
+  const [catalogItems, setCatalogItems] = useState<CatalogItem[]>(FALLBACK_CATALOG);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [intent, setIntent] = useState<Intent>('daily');
   const [saveName, setSaveName] = useState('');
   const [localBody, setLocalBody] = useState<InstallRequest | null>(null);
+
+  useEffect(() => {
+    api
+      .catalog()
+      .then((items) => {
+        setCatalogItems(items);
+      })
+      .catch(() => {
+        setCatalogItems(FALLBACK_CATALOG);
+      });
+  }, []);
 
   useEffect(() => {
     api
@@ -77,8 +84,11 @@ export function ConfigurePage() {
     api
       .profile(activePath.profile)
       .then((profileJson) => {
-        if (!cancelled && Array.isArray(profileJson.packages)) {
-          setSelectedPackages(profileJson.packages);
+        if (cancelled) return;
+        // Merge acumulativo: el preset suma a lo ya elegido, no lo sobrescribe.
+        const preset = [...(profileJson.packages ?? []), ...(profileJson.aur_packages ?? [])];
+        if (preset.length) {
+          setSelectedPackages((prev) => mergeSelection(prev, preset));
         }
       })
       .catch(() => {
@@ -88,9 +98,6 @@ export function ConfigurePage() {
       cancelled = true;
     };
   }, [activePath]);
-
-  const catalog = useMemo(() => Object.values(PACKAGE_GROUPS).flat(), []);
-  const filteredCatalog = catalog.filter((p) => p.includes(packageQuery.toLowerCase()));
 
   function togglePackage(pkg: string) {
     setSelectedPackages((prev) =>
@@ -104,19 +111,23 @@ export function ConfigurePage() {
     setDesktop('hyprland');
     setEnableEncryption(false);
     setEnableSnapshots(false);
-    if (hyprland?.packages?.length) setSelectedPackages(hyprland.packages);
+    if (hyprland?.packages?.length) {
+      setSelectedPackages((prev) => mergeSelection(prev, hyprland.packages ?? []));
+    }
   }
 
   function buildBody(form: HTMLFormElement): InstallRequest {
     const data = new FormData(form);
     const extra = ((data.get('packages_extra') as string) || '').split(/\s+/).filter(Boolean);
+    const split = splitSelection(catalogItems, selectedPackages);
     const body: InstallRequest = {
       profile: profile || 'base',
       hostname: (data.get('hostname') as string) || undefined,
       username: (data.get('username') as string) || undefined,
       password: (data.get('password') as string) || undefined,
       desktop,
-      packages: [...new Set([...selectedPackages, ...extra])],
+      packages: [...new Set([...split.packages, ...extra])],
+      ...(split.aur_packages.length ? { aur_packages: [...new Set(split.aur_packages)] } : {}),
       locale: (data.get('locale') as string) || 'es_ES.UTF-8',
       keyboard: (data.get('keyboard') as string) || 'es',
       timezone: (data.get('timezone') as string) || 'Europe/Madrid',
@@ -307,37 +318,11 @@ export function ConfigurePage() {
                 </div>
               </div>
 
-              <fieldset className="space-y-3 rounded-md border border-border p-4">
-                <legend className="px-1 text-sm font-medium">Paquetes del repositorio</legend>
-                <Label htmlFor="pkg-search">Buscar</Label>
-                <Input
-                  id="pkg-search"
-                  value={packageQuery}
-                  onChange={(e) => setPackageQuery(e.target.value)}
-                  placeholder="firefox, git…"
-                />
-                <div className="flex flex-wrap gap-2" role="group" aria-label="Catálogo de paquetes">
-                  {filteredCatalog.map((pkg) => {
-                    const on = selectedPackages.includes(pkg);
-                    return (
-                      <Button
-                        key={pkg}
-                        type="button"
-                        size="sm"
-                        variant={on ? 'default' : 'outline'}
-                        aria-pressed={on}
-                        onClick={() => togglePackage(pkg)}
-                      >
-                        {pkg}
-                      </Button>
-                    );
-                  })}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="packages_extra">Paquetes adicionales (espacio)</Label>
-                  <Input id="packages_extra" name="packages_extra" placeholder="btop ripgrep" />
-                </div>
-              </fieldset>
+              <SoftwareSection
+                catalog={catalogItems}
+                selected={selectedPackages}
+                onToggle={togglePackage}
+              />
 
               <div className="rounded-md border border-border bg-secondary/30 p-4 space-y-4">
                 <h2 className="text-sm font-medium flex items-center gap-2">

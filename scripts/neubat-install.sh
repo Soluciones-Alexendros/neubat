@@ -17,7 +17,7 @@ set -euo pipefail
 # CONFIGURACIÓN GLOBAL
 # -----------------------------------------------------------------------------
 
-NEUBAT_VERSION="1.0.0"
+NEUBAT_VERSION="2.0.0"
 NEUBAT_TOKEN="${1:-}"
 NEUBAT_PROFILE="${2:-production}"
 NEUBAT_LOG="/var/log/neubat-install.log"

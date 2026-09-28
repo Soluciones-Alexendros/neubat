@@ -28,7 +28,7 @@ Objetivo: <resultado verificable>
 Traza: <ADR / issue / script o ruta API>
 Alcance: <archivos>
 Exclusiones: <qué no harás>
-Pruebas: make lint && make test && make smoke && make validate
+Pruebas: make lint && make test && make smoke && make test-e2e && make validate
 Criterio de cierre: CI quality + test + smoke (+ build si toca frontend) verdes
 ```
 
@@ -62,10 +62,14 @@ Una sesión = una unidad cohesiva. PR pequeño. Mensajes al humano y commits en 
 make install-deps && make install-deps-frontend
 make lint && make test && make smoke && make validate
 make test-frontend && make build-frontend   # si tocas portal/frontend
+make test-e2e                               # suite E2E Playwright (portal/e2e)
+make ci-status                              # estado de los pipelines (gh CLI)
 ```
 
-CI principal (`.github/workflows/ci.yml`): jobs `quality`, `test`, `build`, `smoke`.  
-ISO y QEMU quedan en workflow/target opt-in.
+Hooks de git: `npm install` en la raíz activa husky (pre-commit con lint-staged, commit-msg con commitlint Conventional Commits, pre-push con validate+smoke). Saltarlos (`--no-verify`) es excepción, no la norma.
+
+CI principal (`.github/workflows/ci.yml`): jobs `quality`, `test`, `build`, `smoke`, `e2e`.  
+ISO y QEMU quedan en workflow/target opt-in (`make build-iso`, `make validate-iso`, `make test-iso-boot`, `make test-vm`).
 
 ## Convenciones
 
@@ -90,6 +94,6 @@ docs/             architecture/, guides/, runbooks/
 ## Definition of Done
 
 - Criterios de la traza cumplidos
-- Jobs `quality`, `test` y `smoke` verdes (`build` si hay artefacto frontend)
+- Jobs `quality`, `test`, `smoke` y `e2e` verdes (`build` si hay artefacto frontend)
 - Docs canónicos actualizados si cambia el contrato
 - Sin secretos en el diff

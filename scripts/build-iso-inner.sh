@@ -2,7 +2,7 @@
 # NEUBAT - Script interno ejecutado dentro del contenedor Arch para construir la ISO
 set -euo pipefail
 
-ISO_NAME="${1:-neubat-1.0.0-x86_64.iso}"
+ISO_NAME="${1:-neubat-2.0.0-x86_64.iso}"
 
 echo "[build-iso] Actualizando e instalando archiso + reflector ..."
 pacman -Sy --noconfirm --needed archiso reflector
@@ -52,6 +52,16 @@ chmod +x "${PROFILE_DIR}/airootfs/usr/local/bin/neubat-autoinstall"
 mkdir -p "${PROFILE_DIR}/airootfs/etc/systemd/system/multi-user.target.wants"
 ln -sf /etc/systemd/system/neubat-autoinstall.service \
        "${PROFILE_DIR}/airootfs/etc/systemd/system/multi-user.target.wants/neubat-autoinstall.service"
+
+# mkarchiso copia el airootfs con 'cp --no-preserve=mode': el +x del hook se
+# pierde (queda 644) y systemd falla con 203/EXEC al arrancar el servicio.
+# Declarar el modo en file_permissions es el mecanismo soportado por archiso.
+sed -i 's|^)$|  ["/usr/local/bin/neubat-autoinstall"]="0:0:755"\n)|' \
+    "${PROFILE_DIR}/profiledef.sh"
+grep -q '"/usr/local/bin/neubat-autoinstall"' "${PROFILE_DIR}/profiledef.sh" || {
+    echo "[build-iso] ERROR: no se pudo declarar el permiso del hook en profiledef.sh" >&2
+    exit 1
+}
 
 echo "[build-iso] Ejecutando mkarchiso (puede tardar varios minutos) ..."
 mkarchiso -v -w "${WORK_DIR}" "${PROFILE_DIR}" "/out/${ISO_NAME}"

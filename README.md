@@ -168,8 +168,8 @@ bash scripts/validate-install.sh
 
 La release **v1.0.0** incluye la ISO híbrida lista para arrancar:
 
-- [`neubat-1.0.0-x86_64.iso`](https://github.com/Alexendros/neubat/releases/download/v1.0.0/neubat-1.0.0-x86_64.iso) (1.6 GB)
-- [`neubat-1.0.0-x86_64.iso.sha256`](https://github.com/Alexendros/neubat/releases/download/v1.0.0/neubat-1.0.0-x86_64.iso.sha256)
+- [`neubat-1.0.0-x86_64.iso`](https://github.com/Soluciones-Alexendros/neubat/releases/download/v1.0.0/neubat-1.0.0-x86_64.iso) (1.6 GB)
+- [`neubat-1.0.0-x86_64.iso.sha256`](https://github.com/Soluciones-Alexendros/neubat/releases/download/v1.0.0/neubat-1.0.0-x86_64.iso.sha256)
 
 Verifica:
 

@@ -2,7 +2,7 @@
 'use strict';
 /**
  * NEUBAT Portal - Servidor de configuración y despliegue
- * Versión: 1.0.0
+ * Versión: 2.0.0
  */
 
 const express = require('express');
@@ -11,6 +11,7 @@ const db = require('./lib/db');
 const users = require('./lib/users');
 const install = require('./routes/install');
 const statusRoutes = require('./routes/status');
+const catalogRoutes = require('./routes/catalog');
 const adminRoutes = require('./routes/admin');
 const authRoutes = require('./routes/auth');
 const accountRoutes = require('./routes/account');
@@ -40,12 +41,17 @@ function apiLimiter(req, res, next) {
     next();
 }
 
-app.use('/api', apiLimiter);
+// La suite E2E (NEUBAT_DISABLE_RATE_LIMIT=1) supera las 100 req/15 min desde una IP;
+// en producción la variable nunca se define.
+if (process.env.NEUBAT_DISABLE_RATE_LIMIT !== '1') {
+    app.use('/api', apiLimiter);
+}
 app.use('/api', users.optionalUser);
 app.use('/api/auth', authRoutes);
 app.use('/api/account', accountRoutes);
 app.use('/api', install.router);
 app.use('/api', statusRoutes);
+app.use('/api', catalogRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/boot', install.bootRouter);
 
@@ -71,7 +77,7 @@ async function start() {
     app.listen(PORT, () => {
         console.log(`
     ╔══════════════════════════════════════════════════════════════╗
-    ║                    NEUBAT Portal v1.0.0                      ║
+    ║                    NEUBAT Portal v2.0.0                      ║
     ╠══════════════════════════════════════════════════════════════╣
     ║  Servidor iniciado en puerto ${String(PORT).padEnd(32)}║
     ║  Acceso local: http://localhost:${String(PORT).padEnd(27)}║

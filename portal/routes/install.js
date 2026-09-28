@@ -156,6 +156,12 @@ router.post('/complete', async (req, res) => {
     try {
         const { token, status, hostname, duration, error } = req.body;
 
+        if (status && !['completed', 'failed'].includes(status)) {
+            return res.status(400).json({
+                error: `Estado inválido: ${status}. Valores permitidos: completed, failed`
+            });
+        }
+
         const store = await db.readDB();
         const install = store.installations.find(i => i.token === token);
         if (!install) return res.status(404).json({ error: 'Instalación no encontrada' });
@@ -181,10 +187,8 @@ bootRouter.get('/:token', async (req, res) => {
     try {
         if (!configPath) throw new Error('token inválido');
         await fs.access(configPath);
-        const cfg = JSON.parse(await fs.readFile(configPath, 'utf8'));
-        if (cfg && typeof cfg === 'object') {
-            // perfil base no se guarda en el JSON siempre; intentar desde instalaciones
-        }
+        // Se parsea para validar el JSON (un config corrupto debe dar 404); el perfil se resuelve desde las instalaciones
+        JSON.parse(await fs.readFile(configPath, 'utf8'));
     } catch {
         return res.status(404).type('text/plain').send('#!ipxe\necho Configuracion no encontrada\nshell\n');
     }
