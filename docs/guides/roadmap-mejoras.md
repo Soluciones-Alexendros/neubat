@@ -92,7 +92,7 @@ con `aur_packages`.
 | M9 | GC de sesiones caducadas y eviction del rate limiter | Hecho |
 | M10 | Tests frontend de AdminPage, DownloadPage y AccountPage | Pendiente |
 | M11 | Validación de esquema de perfiles `configs/*.json` en `make validate` + test de firma con `aur_packages` | Pendiente |
-| M12 | CSP activa con `helmet` (hoy `contentSecurityPolicy: false` para no romper la SPA y sus assets) | Pendiente |
+| M12 | CSP activa con `helmet` (hash del script inline de tema; `upgrade-insecure-requests` desactivado para no romper el portal local por HTTP) | Hecho |
 
 ### Complementos (diseño y documentación)
 

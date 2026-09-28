@@ -33,7 +33,21 @@ if (TRUST_PROXY) {
     app.set('trust proxy', TRUST_PROXY === '1' || TRUST_PROXY === 'true' ? true : TRUST_PROXY);
 }
 
-app.use(helmet({ contentSecurityPolicy: false }));
+// CSP con los defaults de helmet. Se permite el script inline de tema de
+// index.html mediante su hash y se desactiva upgrade-insecure-requests para no
+// romper el portal local servido por HTTP (:3000) en el sistema instalado.
+app.use(
+    helmet({
+        contentSecurityPolicy: {
+            useDefaults: true,
+            directives: {
+                scriptSrc: ["'self'", "'sha256-UO5IFt8KSPLWRe2U3rPhbOy7zYM9mVtQtzmfl7YVhT8='"],
+                frameAncestors: ["'none'"],
+                upgradeInsecureRequests: null
+            }
+        }
+    })
+);
 
 app.use(express.json({ limit: '2mb' }));
 
