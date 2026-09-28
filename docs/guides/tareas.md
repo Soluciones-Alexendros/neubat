@@ -10,11 +10,11 @@
 
 | # | Tarea | Objetivo | Traza | Estado |
 |---|-------|----------|-------|--------|
-| T1 | Verificar que las 10 alertas de code-scanning cierran tras el próximo scan de CI | 0 alertas `open` en Security → Code scanning | `security.yml`, supresiones `// codeql[...]` del 28-sep-2026 | Pendiente |
+| T1 | Verificar que las 10 alertas de code-scanning cierran tras el próximo scan de CI | 0 alertas `open` en Security → Code scanning | `security.yml`, supresiones `// codeql[...]` del 28-sep-2026 | ✅ Hecho (28-sep-2026: 3 cierres por fix real + 8 descartes T5 justificados, 0 `open` verificado por API) |
 | T2 | Limpiar warnings de oxlint del frontend | `make lint` sin `only-export-components`, `set-state-in-effect` ni `exhaustive-deps` | `src/pages/AdminPage.tsx`, `ConfigurePage.tsx`, `src/components/ui/*`, `src/lib/auth.tsx` | Pendiente |
 | T3 | Tests frontend de AdminPage, DownloadPage y AccountPage | Cobertura Vitest de las pantallas sin testear | M10 de roadmap-mejoras.md | Pendiente |
 | T4 | Validación de esquema de perfiles `configs/*.json` en `make validate` | `make validate` falla si un perfil no cumple el esquema | M11 de roadmap-mejoras.md | Pendiente |
-| T5 | Si una supresión CodeQL no cierra su alerta, descartarla en la UI con justificación | Alerta cerrada por vía UI y documentada | Alerta concreta de code-scanning | Contingencia |
+| T5 | Si una supresión CodeQL no cierra su alerta, descartarla en la UI con justificación | Alerta cerrada por vía UI y documentada | Alertas 2,3,4,5,15,16,17,22 (7× `false positive`, 1× `won't fix`) | ✅ Hecho (28-sep-2026: el motor no aplicó los `// codeql[...]`; descartes vía API con justificación) |
 
 ## Tareas cerradas recientes
 

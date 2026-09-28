@@ -11,7 +11,7 @@ const router = express.Router();
 
 // GET /api/health — health check (público)
 router.get('/health', (req, res) => {
-    res.json({ status: 'ok', version: '2.0.0', timestamp: new Date().toISOString() });
+    res.json({ status: 'ok', version: '2.1.0', timestamp: new Date().toISOString() });
 });
 
 // GET /api/installations — últimas 50 (requiere ADMIN_TOKEN)
