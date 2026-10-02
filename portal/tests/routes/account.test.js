@@ -5,6 +5,7 @@ const path = require('path');
 const request = require('supertest');
 const app = require('../../server');
 const users = require('../../lib/users');
+const { resetAllRateLimiters } = require('../../lib/rate-limit');
 const { toArchinstallPair } = require('../../lib/archinstall');
 
 function cookieHeader(res) {
@@ -27,6 +28,10 @@ async function register(extra = {}) {
 describe('cuenta, sesión y archinstall', () => {
     beforeAll(async () => {
         await users.ensureUsersStore();
+    });
+
+    beforeEach(() => {
+        resetAllRateLimiters();
     });
 
     test('registro rechaza correo, contraseña corta y duplicado', async () => {
@@ -203,11 +208,32 @@ describe('cuenta, sesión y archinstall', () => {
     test('toArchinstallPair cubre defaults y escritorio desconocido', () => {
         const pair = toArchinstallPair({ desktop: 'DESCONOCIDO', packages: 'git' });
         expect(pair.config.hostname).toBe('neubat');
+        expect(pair.config.timezone).toBe('UTC');
         expect(pair.config.disk_config.device).toBe('/dev/sda');
         expect(pair.config.packages).toEqual([]);
         expect(pair.config.profile_config.profile.details).toEqual({});
         expect(pair.creds['!users'][0].username).toBe('neubat');
+        expect(pair.creds['!users'][0]['!password']).toBe('');
+        expect(pair.creds.root_enc_password).toBe('');
         expect(pair.aur_packages).toEqual([]);
+    });
+
+    test('toArchinstallPair no inyecta neubat como contraseña y permite fijar la versión', () => {
+        const vacio = toArchinstallPair({ password: '' });
+        expect(vacio.creds['!users'][0]['!password']).not.toBe('neubat');
+        expect(vacio.creds.root_enc_password).not.toBe('neubat');
+
+        const previo = process.env.NEUBAT_ARCHINSTALL_VERSION;
+        process.env.NEUBAT_ARCHINSTALL_VERSION = '3.0.0';
+        try {
+            expect(toArchinstallPair({}).config.version).toBe('3.0.0');
+        } finally {
+            if (previo === undefined) {
+                delete process.env.NEUBAT_ARCHINSTALL_VERSION;
+            } else {
+                process.env.NEUBAT_ARCHINSTALL_VERSION = previo;
+            }
+        }
     });
 });
 

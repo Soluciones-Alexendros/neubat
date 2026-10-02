@@ -9,9 +9,16 @@ const path = require('path');
 const fs = require('fs').promises;
 const users = require('../lib/users');
 const db = require('../lib/db');
+const { createRateLimiter } = require('../lib/rate-limit');
 const { toArchinstallPair } = require('../lib/archinstall');
 
 const router = express.Router();
+
+const absorbLimiter = createRateLimiter({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    message: 'Demasiadas peticiones'
+});
 
 const RECOMMENDATIONS = [
     {
@@ -120,7 +127,7 @@ router.post('/absorb-code', users.requireUser, async (req, res) => {
     });
 });
 
-router.post('/absorb', async (req, res) => {
+router.post('/absorb', absorbLimiter, async (req, res) => {
     try {
         const { code, inventory } = req.body || {};
         if (!code || !inventory) {
@@ -176,7 +183,7 @@ router.post('/copies/:id/confirm', users.requireUser, async (req, res) => {
 });
 
 router.get('/releases', async (_req, res) => {
-    const tag = process.env.NEUBAT_RELEASE_TAG || 'v2.0.0';
+    const tag = process.env.NEUBAT_RELEASE_TAG || 'v2.1.0';
     const version = tag.replace(/^v/, '');
     const base = process.env.NEUBAT_RELEASE_BASE
         || `https://github.com/Soluciones-Alexendros/neubat/releases/download/${tag}`;

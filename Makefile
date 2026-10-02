@@ -1,5 +1,5 @@
 # NEUBAT - Makefile
-TAG ?= 2.0.0
+TAG ?= 2.1.0
 
 .PHONY: portal install-deps install-deps-frontend build-frontend validate lint test smoke test-smoke test-vm test-iso-boot test-bash test-hmac test-cmdline-parser test-profiles test-p0 test-ansible validate-ansible lint-ansible test-frontend test-e2e install-deps-e2e build-iso validate-iso release ci-status ci-watch ci-log
 
@@ -124,9 +124,9 @@ ci-log:
 	@test -n "$(RUN_ID)" || { echo "Uso: make ci-log RUN_ID=<id>"; exit 1; }
 	gh run view --repo "$(GH_REPO)" --log-failed $(RUN_ID)
 
-# Crear release v1.0.0 en GitHub adjuntando la ISO generada (requiere gh)
+# Crear release v$(TAG) en GitHub adjuntando la ISO generada (requiere gh)
 release: build-iso
 	gh release create v$(TAG) out/neubat-$(TAG)-x86_64.iso \
 		--title "NEUBAT v$(TAG)" \
 		--notes-file docs/RELEASE-v$(TAG).md \
-		--repo Alexendros/neubat
+		--repo "$(GH_REPO)"

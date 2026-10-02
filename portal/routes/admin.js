@@ -61,6 +61,7 @@ router.delete('/installations/:token', requireAdmin, async (req, res) => {
         await db.writeDB(store);
 
         if (configPath) {
+            // codeql[js/path-injection] configPathFor solo acepta tokens hex de 32 caracteres y devuelve null en otro caso.
             await fs.unlink(configPath).catch(() => {});
         }
 

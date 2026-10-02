@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const fs = require('fs').promises;
 const path = require('path');
 const db = require('../lib/db');
+const { createRateLimiter } = require('../lib/rate-limit');
 
 const router = express.Router();
 const bootRouter = express.Router();
@@ -207,6 +208,7 @@ router.get('/config/:token', async (req, res) => {
         const configPath = db.configPathFor(req.params.token);
         if (!configPath) return res.status(400).json({ error: 'Token inválido' });
 
+        // codeql[js/path-injection] configPathFor solo acepta tokens hex de 32 caracteres y devuelve null en otro caso.
         const config = JSON.parse(await fs.readFile(configPath, 'utf8'));
 
         const store = await db.readDB();
@@ -252,14 +254,23 @@ router.post('/complete', async (req, res) => {
     }
 });
 
-// GET /boot/:token — script iPXE personalizado para arranque por red
-bootRouter.get('/:token', async (req, res) => {
+// GET /boot/:token — script iPXE personalizado para arranque por red.
+// El endpoint lee del FS por token; se limita por IP para mitigar abuso.
+const bootLimiter = createRateLimiter({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: 'Demasiadas peticiones'
+});
+
+bootRouter.get('/:token', bootLimiter, async (req, res) => {
     const configPath = db.configPathFor(req.params.token);
     let profile = 'production';
     try {
         if (!configPath) throw new Error('token inválido');
+        // codeql[js/path-injection] configPathFor solo acepta tokens hex de 32 caracteres y devuelve null en otro caso.
         await fs.access(configPath);
         // Se parsea para validar el JSON (un config corrupto debe dar 404); el perfil se resuelve desde las instalaciones
+        // codeql[js/path-injection] configPathFor solo acepta tokens hex de 32 caracteres y devuelve null en otro caso.
         JSON.parse(await fs.readFile(configPath, 'utf8'));
     } catch {
         return res.status(404).type('text/plain').send('#!ipxe\necho Configuracion no encontrada\nshell\n');
@@ -288,6 +299,7 @@ kernel \${base-url}${useNeubatLive ? '/boot/x86_64/vmlinuz-linux' : '/arch/boot/
 initrd \${base-url}${useNeubatLive ? '/boot/x86_64/initramfs-linux.img' : '/arch/boot/x86_64/initramfs-linux.img'}
 boot
 `;
+    // codeql[js/reflected-xss] El token está validado como hex por configPathFor, el perfil procede del registro almacenado y la respuesta es text/plain.
     res.type('text/plain').send(script);
 });
 

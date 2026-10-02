@@ -5,6 +5,7 @@
 
 const crypto = require('crypto');
 const fs = require('fs').promises;
+const fsSync = require('fs');
 const path = require('path');
 const { PORTAL_ROOT } = require('./db');
 
@@ -25,6 +26,7 @@ async function ensureUsersStore() {
     } catch {
         await writeJson(SESSIONS_PATH, { sessions: {} });
     }
+    await readSessions();
 }
 
 async function readJson(file, fallback) {
@@ -36,9 +38,36 @@ async function readJson(file, fallback) {
 }
 
 async function writeJson(file, data) {
-    const tmp = `${file}.tmp`;
+    const tmp = `${file}.${process.pid}.${crypto.randomBytes(6).toString('hex')}.tmp`;
     await fs.writeFile(tmp, JSON.stringify(data, null, 2));
-    await fs.rename(tmp, file);
+    fsSync.renameSync(tmp, file);
+}
+
+function purgeExpiredSessions(store, now = Date.now()) {
+    const sessions = (store && store.sessions) || {};
+    let removed = 0;
+    for (const sid of Object.keys(sessions)) {
+        const session = sessions[sid];
+        if (!session || !session.expires_at || new Date(session.expires_at).getTime() <= now) {
+            delete sessions[sid];
+            removed += 1;
+        }
+    }
+    return removed;
+}
+
+async function readSessions() {
+    let store = await readJson(SESSIONS_PATH, { sessions: {} });
+    if (!store || typeof store !== 'object') {
+        store = { sessions: {} };
+    }
+    if (!store.sessions || typeof store.sessions !== 'object') {
+        store.sessions = {};
+    }
+    if (purgeExpiredSessions(store) > 0) {
+        await writeJson(SESSIONS_PATH, store);
+    }
+    return store;
 }
 
 function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
@@ -116,7 +145,7 @@ async function saveUser(user) {
 
 async function createSession(userId) {
     const sid = crypto.randomBytes(24).toString('hex');
-    const store = await readJson(SESSIONS_PATH, { sessions: {} });
+    const store = await readSessions();
     store.sessions[sid] = {
         user_id: userId,
         created_at: new Date().toISOString(),
@@ -128,21 +157,16 @@ async function createSession(userId) {
 
 async function destroySession(sid) {
     if (!sid) return;
-    const store = await readJson(SESSIONS_PATH, { sessions: {} });
+    const store = await readSessions();
     delete store.sessions[sid];
     await writeJson(SESSIONS_PATH, store);
 }
 
 async function resolveSession(sid) {
     if (!sid) return null;
-    const store = await readJson(SESSIONS_PATH, { sessions: {} });
+    const store = await readSessions();
     const session = store.sessions[sid];
     if (!session) return null;
-    if (new Date(session.expires_at) < new Date()) {
-        delete store.sessions[sid];
-        await writeJson(SESSIONS_PATH, store);
-        return null;
-    }
     const user = await getUserById(session.user_id);
     if (!user) return null;
     const { password_salt, password_hash, absorb_codes, ...safe } = user;
@@ -207,6 +231,7 @@ module.exports = {
     createSession,
     destroySession,
     resolveSession,
+    purgeExpiredSessions,
     verifyPassword,
     parseCookies,
     setSessionCookie,

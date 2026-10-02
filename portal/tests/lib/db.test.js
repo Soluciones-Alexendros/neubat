@@ -45,6 +45,12 @@ describe('lib/db', () => {
         await expect(db.loadProfile('noexiste')).rejects.toThrow();
     });
 
+    test('loadProfile rechaza nombres de perfil con traversal', async () => {
+        await expect(db.loadProfile('../package')).rejects.toThrow(/Perfil inválido/);
+        await expect(db.loadProfile('../../etc/passwd')).rejects.toThrow(/Perfil inválido/);
+        await expect(db.loadProfile('base/../../etc/passwd')).rejects.toThrow(/Perfil inválido/);
+    });
+
     test('signConfig devuelve null sin secreto', () => {
         delete process.env.NEUBAT_HMAC_SECRET;
         const sig = db.signConfig({ token: 'a', hostname: 'h' });
@@ -148,6 +154,20 @@ describe('lib/db', () => {
         } finally {
             delete process.env.NEUBAT_HMAC_SECRET;
             fsSync.rmSync(dir, { recursive: true, force: true });
+        }
+    });
+
+    test('la fixture canónica compartida coincide con la firma JS', () => {
+        const fixturePath = path.join(__dirname, '..', '..', '..', 'tests', 'fixtures', 'hmac-canonical.json');
+        const fixture = JSON.parse(fsSync.readFileSync(fixturePath, 'utf8'));
+        const previous = process.env.NEUBAT_HMAC_SECRET;
+        process.env.NEUBAT_HMAC_SECRET = fixture.secret;
+        try {
+            expect(db.signingPayload(fixture.config)).toBe(fixture.expected_payload);
+            expect(db.signConfig(fixture.config)).toBe(fixture.expected_signature);
+        } finally {
+            if (previous === undefined) delete process.env.NEUBAT_HMAC_SECRET;
+            else process.env.NEUBAT_HMAC_SECRET = previous;
         }
     });
 

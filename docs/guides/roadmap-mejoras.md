@@ -60,9 +60,12 @@ nativa (`noValidate`). Huecos detectados:
 ### Docs, tests y CI
 
 Docs sólidas pero **0 ADRs registrados** (solo plantilla) y faltan runbooks operativos.
-CI: quality/test/build/smoke verdes; ISO y e2e VM opt-in. Tests bash solo cubren
-`lib/utils.sh` (bats). No hay validación de esquema de perfiles ni test de firma HMAC
-con `aur_packages`.
+CI: quality/test/build/smoke verdes; ISO y e2e VM opt-in. Tests bash cubren
+`lib/utils.sh` y la canonicalización de la firma HMAC con `aur_packages` (fixture
+compartida JS↔Python en `tests/fixtures/hmac-canonical.json`). El workflow
+`security.yml` corre actionlint, enforcement de acciones fijadas por SHA, gitleaks
+(historial completo) y osv-scanner (dependencias). Falta la validación de esquema de
+perfiles `configs/*.json` en `make validate`.
 
 ## 2. Backlog priorizado
 
@@ -87,11 +90,14 @@ con `aur_packages`.
 | M4 | Whitelist de `status` en `POST /api/complete` | Hecho |
 | M5 | Eliminar bloque muerto en `bootRouter` | Hecho |
 | M6 | Selección de paquetes acumulativa al cambiar de preset/intención (merge, no overwrite) | Hecho (D1) |
-| M7 | Validación de esquema en `POST /api/install` (hostname, username, packages) con tests | Pendiente |
-| M8 | Persistencia JSON atómica (write tmp + rename) en `install.js`/`users.js` | Pendiente |
-| M9 | GC de sesiones caducadas y eviction del rate limiter | Pendiente |
+| M7 | Validación de esquema en `POST /api/install` (hostname, username, packages) con tests | Hecho |
+| M8 | Persistencia JSON atómica (write tmp + rename) en `install.js`/`users.js` | Hecho |
+| M9 | GC de sesiones caducadas y eviction del rate limiter | Hecho |
 | M10 | Tests frontend de AdminPage, DownloadPage y AccountPage | Pendiente |
-| M11 | Validación de esquema de perfiles `configs/*.json` en `make validate` + test de firma con `aur_packages` | Pendiente |
+| M11 | Validación de esquema de perfiles `configs/*.json` en `make validate` + test de firma con `aur_packages` | Parcial (test de firma con `aur_packages` Hecho; validación de esquema Pendiente) |
+| M12 | CSP activa con `helmet` (hash del script inline de tema; `upgrade-insecure-requests` desactivado para no romper el portal local por HTTP) | Hecho |
+| M13 | Endurecer CI de seguridad: gitleaks, osv-scanner y enforcement de acciones fijadas por SHA en `security.yml` | Hecho |
+| M14 | Cerrar las 10 alertas de code-scanning abiertas: path-injection en `loadProfile`/`configPathFor`, XSS reflejado/DOM, rate-limiting en `/boot`, falso positivo de HMAC | Hecho (28-sep-2026) |
 
 ### Complementos (diseño y documentación)
 
