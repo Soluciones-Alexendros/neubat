@@ -1,7 +1,7 @@
 # NEUBAT - Makefile
 TAG ?= 2.1.0
 
-.PHONY: portal install-deps install-deps-frontend build-frontend validate lint test smoke test-smoke test-vm test-iso-boot test-bash test-ansible validate-ansible lint-ansible test-frontend test-e2e install-deps-e2e build-iso validate-iso release ci-status ci-watch ci-log
+.PHONY: portal install-deps install-deps-frontend build-frontend validate lint test smoke test-smoke test-vm test-iso-boot test-bash test-hmac test-cmdline-parser test-profiles test-p0 test-ansible validate-ansible lint-ansible test-frontend test-e2e install-deps-e2e build-iso validate-iso release ci-status ci-watch ci-log
 
 install-deps:
 	cd portal && npm install
@@ -60,6 +60,19 @@ test-vm:
 
 test-bash:
 	@command -v bats >/dev/null 2>&1 && bats tests/bash/*.bats || echo "bats no instalado; omitido"
+
+# Tests P0 de seguridad (T11): HMAC fail-closed + cmdline-parser + perfiles públicos
+test-hmac:
+	bats tests/bash/hmac.bats
+	cd portal && npm test -- --testPathPatterns=hmac
+
+test-cmdline-parser:
+	bats tests/bash/cmdline-parser.bats
+
+test-profiles:
+	cd portal && npm test -- --testPathPatterns=account
+
+test-p0: test-hmac test-cmdline-parser test-profiles
 
 validate-ansible:
 	@python3 -m json.tool configs/base.json > /dev/null && echo "OK configs/base.json"

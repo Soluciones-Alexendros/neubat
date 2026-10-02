@@ -4,6 +4,7 @@
  */
 
 const express = require('express');
+const crypto = require('crypto');
 const fs = require('fs').promises;
 const path = require('path');
 const db = require('../lib/db');
@@ -104,13 +105,16 @@ router.post('/install', async (req, res) => {
 
         const { toArchinstallPair } = require('../lib/archinstall');
 
+        // Los perfiles base no contienen contraseñas; el portal genera una aleatoria al crear la instalación.
+        const effectivePassword = password || baseProfile.password || crypto.randomBytes(16).toString('hex');
+
         const config = {
             ...baseProfile,
             token,
             machine_id: machineId,
             hostname: hostname || `${baseProfile.hostname}-${machineId}`,
             username: username || baseProfile.username,
-            password: password || baseProfile.password,
+            password: effectivePassword,
             desktop: desktop || baseProfile.desktop,
             packages: [...new Set([...(baseProfile.packages || []), ...packages])],
             aur_packages: [...new Set([...(baseProfile.aur_packages || []), ...aur_packages])],
@@ -159,7 +163,8 @@ router.post('/install', async (req, res) => {
         }
 
         const configPath = db.configPathFor(token);
-        await fs.writeFile(configPath, JSON.stringify(config, null, 2));
+        await fs.writeFile(configPath, JSON.stringify(config, null, 2), { mode: 0o600 });
+        await fs.chmod(configPath, 0o600).catch(() => {});
 
         const store = await db.readDB();
         store.installations.push({
@@ -186,8 +191,19 @@ router.post('/install', async (req, res) => {
     }
 });
 
-// GET /api/config/:token — configuración consumida por el instalador
+// GET /api/config/:token — configuración consumida por el instalador.
+// El token es un bearer de un solo uso con TTL: quien lo posee puede
+// descargar la configuración (incluye secretos que el instalador necesita).
+// En producción se exige TLS y la respuesta nunca debe cachearse.
 router.get('/config/:token', async (req, res) => {
+    res.set('Cache-Control', 'no-store, private');
+    const publicUrl = process.env.NEUBAT_PUBLIC_URL || '';
+    const requiresTls = process.env.NODE_ENV === 'production' && publicUrl.startsWith('https://');
+    // req.secure es true con TLS directo o con X-Forwarded-Proto: https
+    // cuando trust proxy está habilitado (ver NEUBAT_TRUST_PROXY en server.js).
+    if (requiresTls && !req.secure) {
+        return res.status(400).json({ error: 'TLS requerido para descargar la configuración en producción' });
+    }
     try {
         const configPath = db.configPathFor(req.params.token);
         if (!configPath) return res.status(400).json({ error: 'Token inválido' });

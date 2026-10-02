@@ -2,7 +2,6 @@
   "version": "2.0.0",
   "hostname": "neubat-vm-luks",
   "username": "neubat",
-  "password": "",
   "disk": "/dev/nvme0n1",
   "desktop": "none",
   "packages": [

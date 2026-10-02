@@ -60,8 +60,10 @@ function configPathFor(token) {
     return path.join(CONFIG_DIR, `${token}.json`);
 }
 
-// Carga el secreto HMAC desde el entorno. Si no está definido, la firma
-// queda deshabilitada (modo desarrollo o despliegues sin verificación).
+// Carga el secreto HMAC desde el entorno.
+// NEUBAT_HMAC_SECRET debe ser ≥32 bytes aleatorios (p. ej. `openssl rand -hex 32`).
+// Si está vacío, la firma queda deshabilitada (modo desarrollo/lab).
+// En producción server.js/start() aborta sin secreto (fail-closed).
 function hmacSecret() {
     return process.env.NEUBAT_HMAC_SECRET || '';
 }
@@ -116,6 +118,8 @@ function signingPayload(config) {
     return parts.join('|');
 }
 
+// Firma una config con HMAC-SHA256. Fail-closed: devuelve null sin secreto;
+// el llamador no debe adjuntar signature en ese caso.
 function signConfig(config) {
     const secret = hmacSecret();
     if (!secret) return null;

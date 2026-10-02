@@ -2,7 +2,6 @@
   "version": "2.0.0",
   "hostname": "neubat-prod",
   "username": "neubat",
-  "password": "neubat",
   "disk": "/dev/nvme0n1",
   "desktop": "kde",
   "packages": [
@@ -51,7 +50,7 @@
   "encryption": {
     "enabled": true,
     "method": "keyfile",
-    "passphrase": "neubat",
+    "passphrase": "",
     "cipher": "aes-xts-plain64",
     "key_size": 512,
     "_warning": "El método 'keyfile' almacena la llave en /boot para arranque desatendido. Para mayor seguridad física cambia a 'passphrase' tras la instalación o usa TPM2."
