@@ -16,6 +16,11 @@ COPY . /app
 # Build React SPA into portal/public
 RUN cd /app/portal/frontend && npm run build
 
+# Usuario no-root para ejecución en prod (UID/GID 1000)
+RUN addgroup -g 1000 -S neubat && adduser -u 1000 -S neubat -G neubat \
+ && mkdir -p /app/data /app/portal/configs/generated \
+ && chown -R neubat:neubat /app
+
 WORKDIR /app/portal
 
 ENV NODE_ENV=production \
@@ -26,5 +31,7 @@ ENV NODE_ENV=production \
 EXPOSE 3000
 
 VOLUME ["/app/data", "/app/portal/configs/generated"]
+
+USER neubat
 
 CMD ["node", "server.js"]

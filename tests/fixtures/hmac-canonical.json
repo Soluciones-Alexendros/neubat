@@ -1,0 +1,42 @@
+{
+  "aur_packages": [],
+  "desktop": "none",
+  "disk": "/dev/sda",
+  "encryption": {
+    "cipher": "aes-xts-plain64",
+    "enabled": true,
+    "key_size": 512,
+    "method": "passphrase"
+  },
+  "features": {
+    "automatic_updates": false,
+    "firewall": false,
+    "ssh": true
+  },
+  "hostname": "neubat-test",
+  "keyboard": "es",
+  "locale": "es_ES.UTF-8",
+  "machine_id": "deadbeef",
+  "packages": [
+    "curl",
+    "git",
+    "htop"
+  ],
+  "password": "test-fixture-password",
+  "services": [
+    "NetworkManager",
+    "sshd"
+  ],
+  "snapshots": {
+    "cleanup": {
+      "daily": 7,
+      "hourly": 5,
+      "monthly": 2,
+      "weekly": 2
+    },
+    "enabled": true
+  },
+  "timezone": "Europe/Madrid",
+  "token": "aabbccdd00112233445566778899aabb",
+  "username": "neubat"
+}

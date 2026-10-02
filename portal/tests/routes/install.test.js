@@ -176,11 +176,12 @@ describe('routes/install', () => {
     });
 
     test('POST /api/install rechaza cifrado con el secreto de ejemplo', async () => {
-        const res = await request(app)
+        // F1: production.json ya no trae passphrase "neubat" -> los defaults son aceptados.
+        const ok = await request(app)
             .post('/api/install')
             .send({ profile: 'production', hostname: 'no-publico' })
-            .expect(400);
-        expect(res.body.error).toMatch(/neubat/);
+            .expect(200);
+        expect(ok.body.token).toMatch(/^[0-9a-f]{32}$/);
 
         await request(app)
             .post('/api/install')
@@ -190,6 +191,16 @@ describe('routes/install', () => {
                 encryption: { enabled: true, method: 'passphrase', passphrase: 'neubat' }
             })
             .expect(400);
+
+        const res = await request(app)
+            .post('/api/install')
+            .send({
+                profile: 'production',
+                hostname: 'con-secreto-explicito',
+                encryption: { enabled: true, method: 'passphrase', passphrase: 'neubat' }
+            })
+            .expect(400);
+        expect(res.body.error).toMatch(/neubat/);
     });
 
     test('NEUBAT_ALLOW_DEFAULT_SECRETS permite el perfil production en laboratorio', async () => {
@@ -285,5 +296,76 @@ describe('routes/install', () => {
         } finally {
             delete process.env.NEUBAT_PUBLIC_URL;
         }
+    });
+});
+
+describe('GET /api/config/:token TLS y caché (T5)', () => {
+    const ORIG_NODE_ENV = process.env.NODE_ENV;
+    beforeAll(async () => {
+        await db.initStorage();
+    });
+
+    beforeEach(async () => {
+        const store = await db.readDB();
+        store.installations = [];
+        await db.writeDB(store);
+    });
+
+    afterEach(() => {
+        delete process.env.NEUBAT_PUBLIC_URL;
+        delete process.env.NODE_ENV;
+        if (typeof ORIG_NODE_ENV !== 'undefined') process.env.NODE_ENV = ORIG_NODE_ENV;
+    });
+
+    test('en HTTP devuelve 400 en production cuando la URL pública es https', async () => {
+        const create = await request(app)
+            .post('/api/install')
+            .send({ profile: 'base', hostname: 'tls-test' })
+            .expect(200);
+
+        process.env.NODE_ENV = 'production';
+        process.env.NEUBAT_PUBLIC_URL = 'https://portal.example.com';
+
+        const res = await request(app).get(create.body.config_url).expect(400);
+        expect(res.body.error).toMatch(/TLS/i);
+        expect(res.headers['cache-control']).toMatch(/no-store/);
+    });
+
+    test('en HTTPS devuelve 200 y Cache-Control no-store (respeta X-Forwarded-Proto con trust proxy)', async () => {
+        const create = await request(app)
+            .post('/api/install')
+            .send({ profile: 'base', hostname: 'tls-ok' })
+            .expect(200);
+
+        process.env.NODE_ENV = 'production';
+        process.env.NEUBAT_PUBLIC_URL = 'https://portal.example.com';
+        const prevTrustProxy = app.get('trust proxy');
+        app.set('trust proxy', true);
+        try {
+            const res = await request(app)
+                .get(create.body.config_url)
+                .set('X-Forwarded-Proto', 'https')
+                .expect(200);
+            expect(res.body.token).toBe(create.body.token);
+            expect(res.headers['cache-control']).toMatch(/no-store/);
+            expect(res.headers['cache-control']).toMatch(/private/);
+        } finally {
+            if (prevTrustProxy === undefined || prevTrustProxy === false) {
+                app.set('trust proxy', false);
+            } else {
+                app.set('trust proxy', prevTrustProxy);
+            }
+        }
+    });
+
+    test('Cache-Control no-store presente en la descarga', async () => {
+        const create = await request(app)
+            .post('/api/install')
+            .send({ profile: 'base', hostname: 'cache-test' })
+            .expect(200);
+
+        const res = await request(app).get(create.body.config_url).expect(200);
+        expect(res.headers['cache-control']).toMatch(/no-store/);
+        expect(res.headers['cache-control']).toMatch(/private/);
     });
 });

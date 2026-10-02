@@ -69,3 +69,57 @@ reject_public_luks_secret() {
     fi
     return 0
 }
+
+# Parser seguro del kernel cmdline (SEC-004): no interpreta la cmdline como código.
+# Lee /proc/cmdline o $CMDLINE_OVERRIDE (solo tests), con allowlist:
+# neubat_token, neubat_profile, neubat_portal_url.
+# Solo exporta valores validados: NEUBAT_TOKEN, NEUBAT_PROFILE,
+# NEUBAT_PORTAL_URL. Claves desconocidas se ignoran.
+# Uso: parse_kernel_cmdline
+parse_kernel_cmdline() {
+    local cmdline_src=""
+    if [[ "${NEUBAT_ALLOW_TEST_HOOKS:-}" == "1" && -n "${CMDLINE_OVERRIDE+x}" ]]; then
+        cmdline_src="${CMDLINE_OVERRIDE}"
+    elif [[ -r /proc/cmdline ]]; then
+        cmdline_src="$(cat /proc/cmdline)"
+    fi
+
+    unset NEUBAT_TOKEN NEUBAT_PROFILE NEUBAT_PORTAL_URL
+
+    local token_re='^[0-9a-f]{32}$'
+    local profile_re='^[A-Za-z0-9_-]{1,64}$'
+    # shellcheck disable=SC2016 # $() entre comillas simples es regex literal intencional (caracteres a rechazar).
+    local url_re='^https?://[^[:space:]"'"'"';`$(){}|&<>]+$'
+
+    local -a parts=()
+    read -ra parts <<< "${cmdline_src}" || true
+    [[ "${#parts[@]}" -eq 0 ]] && return 0
+
+    local entry key value
+    for entry in "${parts[@]}"; do
+        case "${entry}" in
+            *=*) ;;
+            *) continue ;;
+        esac
+        key="${entry%%=*}"
+        value="${entry#*=}"
+        case "${key}" in
+            neubat_token)
+                if [[ "${value}" =~ ${token_re} ]]; then
+                    export NEUBAT_TOKEN="${value}"
+                fi
+                ;;
+            neubat_profile)
+                if [[ "${value}" =~ ${profile_re} ]]; then
+                    export NEUBAT_PROFILE="${value}"
+                fi
+                ;;
+            neubat_portal_url)
+                if [[ "${value}" =~ ${url_re} ]]; then
+                    export NEUBAT_PORTAL_URL="${value}"
+                fi
+                ;;
+            *) continue ;;
+        esac
+    done
+}

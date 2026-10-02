@@ -13,6 +13,13 @@ services:
       - NEUBAT_DATA_DIR=/app/data
       - NEUBAT_CONFIGS_DIR=/app/portal/configs/generated
       - ADMIN_TOKEN=${ADMIN_TOKEN:-}
+      - NEUBAT_HMAC_SECRET=${NEUBAT_HMAC_SECRET:-}
+      - NEUBAT_PUBLIC_URL=https://${NEUBAT_DOMAIN:-portal.example.com}
+      - NEUBAT_LIVE_BASE=https://${NEUBAT_DOMAIN:-portal.example.com}/live
+      - NEUBAT_USE_LIVE=1
+      # Detrás de reverse-proxy: habilita trust proxy para X-Forwarded-Proto (req.secure/TLS).
+      # server.js lo soporta vía NEUBAT_TRUST_PROXY (1|true|nº saltos|IPs). Sin proxy delante, déjalo vacío.
+      - NEUBAT_TRUST_PROXY=${NEUBAT_TRUST_PROXY:-1}
     volumes:
       - portal-data:/app/data
       - portal-configs:/app/portal/configs/generated

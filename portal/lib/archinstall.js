@@ -43,11 +43,11 @@ function toArchinstallPair(profile) {
     };
 
     const creds = {
-        root_enc_password: profile.password || 'neubat',
+        root_enc_password: profile.password || '',
         '!users': [
             {
                 username: profile.username || 'neubat',
-                '!password': profile.password || 'neubat',
+                '!password': profile.password || '',
                 sudo: true
             }
         ]

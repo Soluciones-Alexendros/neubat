@@ -83,6 +83,22 @@ app.get('*', (req, res) => {
 });
 
 async function start() {
+    if (process.env.NODE_ENV === 'production') {
+        const hmacSecretVal = process.env.NEUBAT_HMAC_SECRET || '';
+        if (!hmacSecretVal) {
+            console.error('NEUBAT_HMAC_SECRET no definido en producción; abortando arranque (fail-closed). Define un secreto aleatorio ≥32 bytes.');
+            process.exit(1);
+        }
+        if (hmacSecretVal.length < 32 || hmacSecretVal === 'cambia-este-secreto-por-una-cadena-larga-y-aleatoria') {
+            console.error('NEUBAT_HMAC_SECRET débil en producción; abortando arranque (fail-closed). Debe tener ≥32 caracteres aleatorios y no ser el placeholder de .env.example.');
+            process.exit(1);
+        }
+        const publicUrl = process.env.NEUBAT_PUBLIC_URL || '';
+        if (!publicUrl.startsWith('https://')) {
+            console.error('NEUBAT_PUBLIC_URL debe empezar por https:// en producción; abortando arranque (fail-closed).');
+            process.exit(1);
+        }
+    }
     await db.initStorage();
     await users.ensureUsersStore();
     app.listen(PORT, () => {
@@ -106,3 +122,4 @@ if (require.main === module) {
 }
 
 module.exports = app;
+module.exports.start = start;

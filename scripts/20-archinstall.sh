@@ -2,7 +2,19 @@
 # =============================================================================
 # NEUBAT - Fase 0b/2: obtención de configuración e instalación del sistema base
 # Módulo cargado por neubat-install.sh (no ejecutar directamente)
+# Si se invoca directo (debug/lab), parsea el kernel cmdline con
+# parse_kernel_cmdline() de scripts/lib/utils.sh (allowlist + validación).
 # =============================================================================
+
+# Invocación directa: obtener NEUBAT_* del kernel cmdline de forma segura.
+# Al cargarse vía source desde neubat-install.sh no hace nada.
+if [[ "${BASH_SOURCE[0]:-}" == "${0}" ]]; then
+    _ARCHINSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    # shellcheck source=scripts/lib/utils.sh
+    source "${_ARCHINSTALL_DIR}/lib/utils.sh"
+    unset _ARCHINSTALL_DIR
+    parse_kernel_cmdline
+fi
 
 fetch_configuration() {
     log "Obteniendo configuración para token: ${NEUBAT_TOKEN}"
@@ -12,11 +24,18 @@ fetch_configuration() {
 
     NEUBAT_CONFIG_FILE="${NEUBAT_WORKDIR}/neubat-config.json"
 
-    # Intentar descargar la configuración personalizada del portal
-    if ! curl -sf --max-time 15 "${NEUBAT_PORTAL_URL}/api/config/${NEUBAT_TOKEN}" -o "${NEUBAT_CONFIG_FILE}"; then
+    # Intentar descargar la configuración personalizada del portal.
+    # Si el portal es https, se prohíben protocolos inseguros (fail-closed TLS).
+    _curl_proto=()
+    if [[ "${NEUBAT_PORTAL_URL}" == https://* ]]; then
+        _curl_proto=(--proto '=https' --tlsv1.2)
+    fi
+    if ! curl -sf --max-time 15 "${_curl_proto[@]}" "${NEUBAT_PORTAL_URL}/api/config/${NEUBAT_TOKEN}" -o "${NEUBAT_CONFIG_FILE}"; then
         warning "Sin config personalizada; usando perfil local: ${NEUBAT_PROFILE}"
         cp "${NEUBAT_ROOT}/configs/${NEUBAT_PROFILE}.json" "${NEUBAT_CONFIG_FILE}"
     fi
+    unset _curl_proto
+    chmod 600 "${NEUBAT_CONFIG_FILE}" 2>/dev/null || true
 
     # Validar JSON
     if ! python3 -m json.tool "${NEUBAT_CONFIG_FILE}" &>/dev/null; then
@@ -32,7 +51,7 @@ fetch_configuration() {
     # shellcheck disable=SC2034
     USERNAME=$(cfg_get "${NEUBAT_CONFIG_FILE}" username "neubat")
     # shellcheck disable=SC2034
-    PASSWORD=$(cfg_get "${NEUBAT_CONFIG_FILE}" password "neubat")
+    PASSWORD=$(cfg_get "${NEUBAT_CONFIG_FILE}" password "")
     # shellcheck disable=SC2034
     DESKTOP=$(cfg_get "${NEUBAT_CONFIG_FILE}" desktop "none")
     # shellcheck disable=SC2034
@@ -114,16 +133,22 @@ fetch_configuration() {
 }
 
 # Verifica la firma HMAC-SHA256 de un archivo JSON descargado.
-# Si NEUBAT_HMAC_SECRET está vacío, la verificación se omite.
-# Si el archivo no contiene signature pero hay secreto, se omite con advertencia
-# (útil para perfiles locales sin portal).
+# Si NEUBAT_HMAC_SECRET está vacío, la verificación se omite (modo lab).
+# Fail-closed: si hay secreto pero la config no trae signature o la firma
+# es inválida, aborta con error fatal (exit 1 vía error()).
 verify_config_signature() {
     local config_file="$1"
     local secret="${NEUBAT_HMAC_SECRET:-}"
 
     [[ -z "${secret}" ]] && return 0
 
-    if ! python3 - "${config_file}" "${secret}" <<'PYEOF'
+    # Secreto débil: aviso claro pero no fatal para no romper el lab.
+    if [[ "${#secret}" -lt 32 ]]; then
+        warning "NEUBAT_HMAC_SECRET débil (<32 caracteres); genera uno con: openssl rand -hex 32"
+    fi
+
+    local rc=0
+    python3 - "${config_file}" "${secret}" <<'PYEOF'
 import json, hmac, hashlib, sys
 with open(sys.argv[1]) as f:
     cfg = json.load(f)
@@ -160,10 +185,12 @@ payload = '|'.join(parts).encode()
 expected = hmac.new(secret, payload, hashlib.sha256).hexdigest()
 sys.exit(0 if hmac.compare_digest(sig, expected) else 1)
 PYEOF
-    then
-        case $? in
-            1) error "Firma HMAC de la configuración inválida. Posible manipulación en tránsito." ;;
-            2) warning "Configuración sin firma HMAC; se omite la verificación" ;;
+    rc=$?
+    if [[ "${rc}" -ne 0 ]]; then
+        case "${rc}" in
+            1) error "Firma HMAC inválida. Posible manipulación en tránsito." ;;
+            2) error "Configuración sin firma HMAC; requerida cuando NEUBAT_HMAC_SECRET está definido" ;;
+            *) error "Verificación HMAC falló (código ${rc})" ;;
         esac
     fi
 }

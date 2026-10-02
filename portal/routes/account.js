@@ -196,10 +196,32 @@ router.get('/releases', async (_req, res) => {
 router.get('/profiles/:name', async (req, res) => {
     try {
         const profile = await db.loadProfile(req.params.name);
-        res.json(profile);
+        res.json(redactProfileForPublicView(profile));
     } catch {
         res.status(404).json({ error: 'Perfil no encontrado' });
     }
 });
+
+const REDACTED = '[redacted]';
+
+// Vista pública de perfiles: redacta secretos antes de responder.
+// El instalador autenticado no usa este endpoint (usa POST /api/install,
+// que carga el perfil con db.loadProfile y sí incluye secretos), por eso
+// aquí solo se ocultan para la vista pública sin romper el instalador.
+function redactProfileForPublicView(profile) {
+    if (!profile || typeof profile !== 'object' || Array.isArray(profile)) return profile;
+    const redacted = JSON.parse(JSON.stringify(profile));
+    if ('password' in redacted) redacted.password = REDACTED;
+    if (redacted.encryption && typeof redacted.encryption === 'object' && !Array.isArray(redacted.encryption)) {
+        if ('passphrase' in redacted.encryption) redacted.encryption.passphrase = REDACTED;
+    }
+    if (redacted.archinstall && typeof redacted.archinstall === 'object' && !Array.isArray(redacted.archinstall)) {
+        if ('creds' in redacted.archinstall) redacted.archinstall.creds = REDACTED;
+    }
+    if ('creds' in redacted) redacted.creds = REDACTED;
+    return redacted;
+}
+
+router.redactProfileForPublicView = redactProfileForPublicView;
 
 module.exports = router;

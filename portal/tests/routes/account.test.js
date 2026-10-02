@@ -210,3 +210,45 @@ describe('cuenta, sesión y archinstall', () => {
         expect(pair.aur_packages).toEqual([]);
     });
 });
+
+describe('perfiles públicos redactados (T4)', () => {
+    test('perfil production no expone password en claro', async () => {
+        const res = await request(app).get('/api/account/profiles/production').expect(200);
+        // T9 eliminó el password de los perfiles base: ausente o redactado, nunca en claro.
+        expect(res.body.password || '[redacted]').toBe('[redacted]');
+        expect(JSON.stringify(res.body)).not.toContain('"password":"neubat"');
+    });
+
+    test('perfil production no expone encryption.passphrase', async () => {
+        const res = await request(app).get('/api/account/profiles/production').expect(200);
+        expect(res.body.encryption.passphrase).toBe('[redacted]');
+        expect(res.body.encryption.passphrase).not.toBe('neubat');
+    });
+
+    test('perfil production no expone archinstall.creds en claro', async () => {
+        const res = await request(app).get('/api/account/profiles/production').expect(200);
+        const raw = JSON.stringify(res.body);
+        expect(raw).not.toContain('root_enc_password');
+        expect(raw).not.toContain('!password');
+        if (res.body.archinstall) {
+            expect(res.body.archinstall.creds).not.toBeInstanceOf(Object);
+        }
+        if ('creds' in res.body) {
+            expect(res.body.creds).toBe('[redacted]');
+        }
+    });
+
+    test('redactProfileForPublicView redacta un perfil con todos los secretos', () => {
+        const accountRoutes = require('../../routes/account');
+        const redacted = accountRoutes.redactProfileForPublicView({
+            hostname: 'x',
+            password: 'secreto-real',
+            encryption: { enabled: true, passphrase: 'frase-real' },
+            archinstall: { config: {}, creds: { '!users': [] } }
+        });
+        expect(redacted.password).toBe('[redacted]');
+        expect(redacted.encryption.passphrase).toBe('[redacted]');
+        expect(redacted.archinstall.creds).toBe('[redacted]');
+        expect(redacted.hostname).toBe('x');
+    });
+});

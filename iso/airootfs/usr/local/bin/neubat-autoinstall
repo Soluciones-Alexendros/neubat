@@ -1,22 +1,33 @@
 #!/bin/bash
 # NEUBAT - Arranque desatendido desde el live ISO de Arch
 # Lee neubat_token, neubat_profile y neubat_portal_url del kernel cmdline
-# y ejecuta el instalador maestro.
+# mediante parse_kernel_cmdline() (allowlist + validación, sin
+# interpretar la cmdline como código) y ejecuta el instalador maestro.
 
 set -euo pipefail
 
-read_cmdline() {
-    local key
-    for key in neubat_token neubat_profile neubat_portal_url; do
-        grep -oE "${key}=[^ ]+" /proc/cmdline || true
-    done
-}
+if [[ -f "/opt/neubat/scripts/lib/utils.sh" ]]; then
+    # shellcheck source=scripts/lib/utils.sh
+    source "/opt/neubat/scripts/lib/utils.sh"
+else
+    _AUTOINSTALL_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." 2>/dev/null && pwd || true)"
+    if [[ -n "${_AUTOINSTALL_ROOT:-}" && -f "${_AUTOINSTALL_ROOT}/scripts/lib/utils.sh" ]]; then
+        # shellcheck source=scripts/lib/utils.sh
+        source "${_AUTOINSTALL_ROOT}/scripts/lib/utils.sh"
+    fi
+    unset _AUTOINSTALL_ROOT 2>/dev/null || true
+fi
 
-eval "$(read_cmdline | sed 's/^/export /')"
+if ! declare -F parse_kernel_cmdline >/dev/null 2>&1; then
+    echo "[neubat-autoinstall] ERROR: parse_kernel_cmdline no disponible (falta scripts/lib/utils.sh)" >&2
+    exit 1
+fi
 
-TOKEN="${neubat_token:-}"
-PROFILE="${neubat_profile:-production}"
-PORTAL_URL="${neubat_portal_url:-http://portal.neubat.local:3000}"
+parse_kernel_cmdline
+
+TOKEN="${NEUBAT_TOKEN:-}"
+PROFILE="${NEUBAT_PROFILE:-production}"
+PORTAL_URL="${NEUBAT_PORTAL_URL:-http://portal.neubat.local:3000}"
 
 if [[ -z "$TOKEN" ]]; then
     echo "[neubat-autoinstall] No se detectó neubat_token en la línea de comandos. Arranque manual."
