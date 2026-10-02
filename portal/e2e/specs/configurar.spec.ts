@@ -72,7 +72,9 @@ test('hostname, usuario y contraseña vacíos no bloquean el envío: el servidor
   const config = await (await request.get(`/api/config/${token}`)).json();
   expect(config.hostname).toMatch(/^neubat-base-[0-9a-f]{8}$/);
   expect(config.username).toBe('neubat');
-  expect(config.password).toBe('neubat');
+  // Sin password por defecto en perfiles (T9): el servidor genera una aleatoria.
+  expect(config.password).toMatch(/^[0-9a-f]{32}$/);
+  expect(config.password).not.toBe('neubat');
 });
 
 test('el buscador del catálogo filtra los resultados', async ({ page }) => {
