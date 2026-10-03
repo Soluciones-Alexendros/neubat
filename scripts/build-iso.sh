@@ -25,5 +25,8 @@ docker run --rm --privileged \
     -v "${ROOT_DIR}:/src:ro" \
     archlinux:latest bash /src/scripts/build-iso-inner.sh "${ISO_NAME}"
 
+# Generar SHA256 del ISO para validación
+sha256sum "${OUT_DIR}/${ISO_NAME}" > "${OUT_DIR}/${ISO_NAME}.sha256"
+
 echo "[build-iso] Listo: ${OUT_DIR}/${ISO_NAME}"
 ls -lh "${OUT_DIR}/${ISO_NAME}"

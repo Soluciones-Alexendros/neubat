@@ -47,6 +47,9 @@ jobs:
       - name: Validate scripts and configs
         run: make validate
 
+      - name: Validate contracts (schemas)
+        run: make validate-contracts
+
       - name: Lint shell and frontend
         run: make lint
 
@@ -84,11 +87,17 @@ jobs:
       - name: Run portal tests
         run: make test
 
+      - name: Run contract tests
+        run: make test-contract
+
       - name: Run frontend tests
         run: cd portal/frontend && npm test
 
       - name: Run bats tests
         run: make test-bash
+
+      - name: Run installer integration tests
+        run: make test-integration
 
   p0-tests:
     name: p0-tests
@@ -115,6 +124,29 @@ jobs:
 
       - name: Run P0 security tests
         run: make test-p0
+
+  security:
+    name: security
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: portal/package-lock.json
+
+      - name: Install portal dependencies
+        run: cd portal && npm ci
+
+      - name: Run security scan (secrets, TLS, HMAC, headers, deps)
+        run: make test-security
 
   build:
     name: build

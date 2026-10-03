@@ -196,4 +196,23 @@ describe('lib/db', () => {
         };
         expect(db.signConfig(tampered)).not.toBe(sig);
     });
+
+    test('canonicalObject serializa arrays anidados de forma canónica', () => {
+        expect(db.canonicalObject({ z: 1, a: [{ b: 2, a: 1 }, 'x', null] }))
+            .toBe('{"a":[{"a":1,"b":2},"x",null],"z":1}');
+        expect(db.canonicalObject({ cleanup: { daily: 7, hourly: 5 } }))
+            .toBe('{"cleanup":{"daily":7,"hourly":5}}');
+    });
+
+    test('canonicalObject devuelve cadena vacía para valores no-objeto', () => {
+        expect(db.canonicalObject(null)).toBe('');
+        expect(db.canonicalObject(undefined)).toBe('');
+        expect(db.canonicalObject('texto')).toBe('');
+        expect(db.canonicalObject(42)).toBe('');
+        expect(db.canonicalObject([1, 2])).toBe('');
+    });
+
+    test('canonicalObject conserva objeto vacío como {}', () => {
+        expect(db.canonicalObject({})).toBe('{}');
+    });
 });

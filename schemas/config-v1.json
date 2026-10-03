@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neubat.local/schemas/config-v1.json",
+  "title": "NEUBAT generated install config v1",
+  "description": "Contrato producer (portal POST /api/install) / consumer (scripts/20-archinstall.sh). La firma HMAC se calcula con signingPayload() en portal/lib/db.js.",
+  "type": "object",
+  "required": [
+    "token",
+    "machine_id",
+    "hostname",
+    "username",
+    "password",
+    "desktop",
+    "timezone",
+    "locale",
+    "keyboard",
+    "created_at",
+    "status"
+  ],
+  "properties": {
+    "token": { "type": "string", "pattern": "^[0-9a-f]{32}$" },
+    "machine_id": { "type": "string", "pattern": "^[0-9a-f]{8}$" },
+    "hostname": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 253,
+      "pattern": "^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
+    },
+    "username": { "type": "string", "pattern": "^[a-z_][a-z0-9_-]{0,31}$" },
+    "password": { "type": "string", "minLength": 1 },
+    "disk": { "type": "string", "minLength": 1 },
+    "desktop": {
+      "type": "string",
+      "enum": ["none", "minimal", "kde", "plasma", "gnome", "xfce", "hyprland", "sway", "i3", "niri"]
+    },
+    "packages": { "type": "array", "items": { "type": "string", "pattern": "^[a-zA-Z0-9@._+-]{1,64}$" } },
+    "aur_packages": { "type": "array", "items": { "type": "string", "pattern": "^[a-zA-Z0-9@._+-]{1,64}$" } },
+    "services": { "type": "array", "items": { "type": "string" } },
+    "timezone": { "type": "string", "pattern": "^[A-Za-z0-9_+-]+(/[A-Za-z0-9_+-]+)*$" },
+    "locale": { "type": "string", "pattern": "^[a-zA-Z]{2,3}(_[A-Za-z]{2,4})?\\.(UTF-8|utf8)$" },
+    "keyboard": { "type": "string", "pattern": "^[a-zA-Z0-9_-]{1,64}$" },
+    "encryption": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "method": { "type": "string", "enum": ["keyfile", "passphrase", "interactive"] },
+        "passphrase": { "type": "string" },
+        "cipher": { "type": "string" },
+        "key_size": { "type": "integer" }
+      },
+      "required": ["enabled"],
+      "additionalProperties": true
+    },
+    "snapshots": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "cleanup": {
+          "type": "object",
+          "properties": {
+            "hourly": { "type": "integer", "minimum": 0 },
+            "daily": { "type": "integer", "minimum": 0 },
+            "weekly": { "type": "integer", "minimum": 0 },
+            "monthly": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["enabled"],
+      "additionalProperties": true
+    },
+    "features": { "type": "object", "additionalProperties": true },
+    "archinstall": { "type": "object" },
+    "signature": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "status": { "type": "string", "enum": ["pending", "downloaded", "completed", "failed"] },
+    "version": { "type": "string" }
+  },
+  "additionalProperties": true
+}
