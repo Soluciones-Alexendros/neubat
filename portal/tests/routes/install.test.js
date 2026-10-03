@@ -372,7 +372,7 @@ describe('GET /api/config/:token TLS y caché (T5)', () => {
             .expect(200);
 
         const res = await request(app).get(create.body.config_url).expect(200);
-        expect(res.headers['cache-control']).toMatch(/no-store/);
+expect(res.headers['cache-control']).toMatch(/no-store/);
         expect(res.headers['cache-control']).toMatch(/private/);
     });
 });
