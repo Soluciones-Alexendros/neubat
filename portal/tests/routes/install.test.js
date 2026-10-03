@@ -376,3 +376,57 @@ describe('GET /api/config/:token TLS y caché (T5)', () => {
         expect(res.headers['cache-control']).toMatch(/private/);
     });
 });
+
+describe('routes/install errores y fallback (defensivo)', () => {
+    beforeAll(async () => {
+        await db.initStorage();
+    });
+
+    beforeEach(async () => {
+        const store = await db.readDB();
+        store.installations = [];
+        await db.writeDB(store);
+    });
+
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
+    test('GET /boot/:token usa localhost cuando la cabecera Host es inválida', async () => {
+        const create = await request(app)
+            .post('/api/install')
+            .send({ profile: 'base', hostname: 'badhost' })
+            .expect(200);
+
+        const res = await request(app)
+            .get(create.body.boot_url)
+            .set('Host', 'bad host')
+            .expect(200);
+        expect(res.text).toContain('http://localhost:');
+    });
+
+    test('POST /api/install responde 500 si falla la persistencia', async () => {
+        jest.spyOn(db, 'writeDB').mockRejectedValueOnce(new Error('disco lleno'));
+        const res = await request(app)
+            .post('/api/install')
+            .send({ profile: 'base', hostname: 'fail-write' })
+            .expect(500);
+        expect(res.body.error).toMatch(/interno/i);
+    });
+
+    test('GET /api/config/:token inexistente responde 404', async () => {
+        const res = await request(app)
+            .get('/api/config/0123456789abcdef0123456789abcdef')
+            .expect(404);
+        expect(res.body.error).toMatch(/no encontrada/i);
+    });
+
+    test('POST /api/complete responde 500 si falla la lectura', async () => {
+        jest.spyOn(db, 'readDB').mockRejectedValueOnce(new Error('disco'));
+        const res = await request(app)
+            .post('/api/complete')
+            .send({ token: 'a'.repeat(32), status: 'completed' })
+            .expect(500);
+        expect(res.body.error).toMatch(/interno/i);
+    });
+});

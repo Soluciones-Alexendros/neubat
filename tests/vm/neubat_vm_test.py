@@ -20,6 +20,7 @@ Variables de entorno (valores por defecto entre paréntesis):
   NEUBAT_SSH_PORT     Puerto host redirigido al 22 del guest (2222)
   NEUBAT_PROFILE      Perfil de instalación (base)
   NEUBAT_DISK_GIB     Tamaño del disco virtual (40)
+  NEUBAT_PROFILES     Perfiles a probar, separados por coma (base,vm-luks)
 
 Notas: ver docs/INSTALL.md §11 (e1000 obligatorio con slirp, ParallelDownloads=1,
 sin ip=dhcp en kernel directo, patrones de consola tolerantes a ANSI/UTF-8).
@@ -42,6 +43,7 @@ PORTAL_PORT = int(os.environ.get("NEUBAT_PORTAL_PORT", "3100"))
 HTTP_PORT = int(os.environ.get("NEUBAT_HTTP_PORT", "8000"))
 SSH_PORT = int(os.environ.get("NEUBAT_SSH_PORT", "2222"))
 PROFILE = os.environ.get("NEUBAT_PROFILE", "base")
+PROFILES = [p.strip() for p in os.environ.get("NEUBAT_PROFILES", PROFILE).split(",")]
 DISK_GIB = os.environ.get("NEUBAT_DISK_GIB", "40")
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -65,11 +67,11 @@ def iso_label():
     return label
 
 
-def create_installation():
+def create_installation(profile: str = PROFILE, password: str = "neubat"):
     """Crea la instalación en el portal y apunta su config al NVMe virtual."""
     req = urllib.request.Request(
         f"http://localhost:{PORTAL_PORT}/api/install",
-        data=json.dumps({"profile": PROFILE, "hostname": "neubat-vm"}).encode(),
+        data=json.dumps({"profile": profile, "hostname": "neubat-vm", "password": password}).encode(),
         headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=15) as r:
         token = json.load(r)["token"]
@@ -79,7 +81,7 @@ def create_installation():
     cfg["disk"] = "/dev/nvme0n1"
     with open(cfg_path, "w") as f:
         json.dump(cfg, f, indent=2)
-    log(f"Token creado: {token} (disk -> /dev/nvme0n1)")
+    log(f"Token creado: {token} (disk -> /dev/nvme0n1, profile={profile})")
     return token
 
 
@@ -191,7 +193,10 @@ def phase1_install(token):
             ok = True
             break
         if i == 1:
-            ok = b"INSTALL_EXIT=0" in vm.after
+            if isinstance(vm.after, bytes):
+                ok = b"INSTALL_EXIT=0" in vm.after
+            else:
+                ok = False
             install_failed_marker = vm.after
             break
         if i == 2:
@@ -304,10 +309,32 @@ def main():
     global CONSOLE
     os.makedirs(VM, exist_ok=True)
     CONSOLE = open(os.path.join(VM, "console.log"), "wb")
-    token = create_installation()
-    prepare_workdir()
-    phase1_install(token)
-    phase2_verify()
+    
+    for idx, profile in enumerate(PROFILES):
+        if idx > 0:
+            # Reiniciar VM limpia para cada perfil adicional
+            for f in ("neubat-disk.qcow2", "vars.fd", "console.log"):
+                path = os.path.join(VM, f)
+                if os.path.exists(path):
+                    os.unlink(path)
+            shutil.copy(OVMF_VARS, os.path.join(VM, "vars.fd"))
+            subprocess.run(["qemu-img", "create", "-f", "qcow2",
+                            os.path.join(VM, "neubat-disk.qcow2"), f"{DISK_GIB}G"],
+                           check=True, capture_output=True)
+        
+        log(f"=== PERFIL {profile} ({idx+1}/{len(PROFILES)}) ===")
+        # Password determinista según perfil
+        if profile == "vm-luks":
+            # Perfil con cifrado: password "neubat" (NEUBAT_ALLOW_DEFAULT_SECRETS=1 en instalador)
+            password = "neubat"
+            os.environ["NEUBAT_ALLOW_DEFAULT_SECRETS"] = "1"
+        else:
+            password = "neubat"
+        
+        token = create_installation(profile, password)
+        prepare_workdir()
+        phase1_install(token)
+        phase2_verify()
 
 
 if __name__ == "__main__":

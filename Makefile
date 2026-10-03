@@ -1,7 +1,7 @@
 # NEUBAT - Makefile
 TAG ?= 2.1.0
 
-.PHONY: portal install-deps install-deps-frontend build-frontend validate lint test smoke test-smoke test-vm test-iso-boot test-bash test-hmac test-cmdline-parser test-profiles test-p0 test-ansible validate-ansible lint-ansible test-frontend test-e2e install-deps-e2e build-iso validate-iso release ci-status ci-watch ci-log
+.PHONY: portal install-deps install-deps-frontend build-frontend validate lint test smoke test-smoke test-vm test-iso-boot test-bash test-hmac test-cmdline-parser test-profiles test-p0 test-ansible validate-ansible lint-ansible test-frontend test-e2e install-deps-e2e build-iso validate-iso release ci-status ci-watch ci-log validate-contracts test-contract test-unit test-integration test-security test-all
 
 install-deps:
 	cd portal && npm install
@@ -73,6 +73,29 @@ test-profiles:
 	cd portal && npm test -- --testPathPatterns=account
 
 test-p0: test-hmac test-cmdline-parser test-profiles
+
+# Contratos: schemas JSON compilan y configs/fixtures validan contra ellos (Fase 1)
+validate-contracts:
+	node scripts/validate-contracts.cjs
+
+# Tests de contrato Jest: request/response reales vs schemas (Fase 1)
+test-contract:
+	cd portal && npm test -- --testPathPatterns=contract
+
+# Cobertura unitaria agregada: portal Jest + bats scripts (Fase 2)
+test-unit: validate validate-contracts test test-bash test-contract
+
+# Integración: harness fases instalador (Fase 3)
+test-integration:
+	@command -v bats >/dev/null 2>&1 && bats tests/integration/*.bats || echo "bats no instalado; omitido"
+
+# Seguridad DAST + secretos + TLS (Fase 5)
+test-security:
+	node scripts/security-scan.cjs
+
+# Suite integral: todo lo requerido en local (no opt-in de VM/ISO)
+test-all: lint test-unit test-integration test-frontend test-security smoke
+	@echo "test-all: OK"
 
 validate-ansible:
 	@python3 -m json.tool configs/base.json > /dev/null && echo "OK configs/base.json"

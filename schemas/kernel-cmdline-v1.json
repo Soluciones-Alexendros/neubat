@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neubat.local/schemas/kernel-cmdline-v1.json",
+  "title": "NEUBAT kernel cmdline params v1",
+  "description": "Contrato kernel cmdline -> instalador. Consumido por parse_kernel_cmdline() en scripts/lib/utils.sh (allowlist).",
+  "type": "object",
+  "properties": {
+    "neubat_token": { "type": "string", "pattern": "^[0-9a-f]{32}$" },
+    "neubat_profile": {
+      "type": "string",
+      "enum": ["base", "production", "developer", "minimal", "vm-luks"]
+    },
+    "neubat_portal_url": { "type": "string", "format": "uri", "pattern": "^https?://" }
+  },
+  "required": ["neubat_token", "neubat_profile", "neubat_portal_url"],
+  "additionalProperties": true
+}

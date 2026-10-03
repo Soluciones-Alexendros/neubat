@@ -2,7 +2,12 @@
 
 const express = require('express');
 const request = require('supertest');
-const { createRateLimiter, resetAllRateLimiters } = require('../../lib/rate-limit');
+const {
+    createRateLimiter,
+    resetAllRateLimiters,
+    DEFAULT_WINDOW_MS,
+    DEFAULT_MAX
+} = require('../../lib/rate-limit');
 
 function appWith(...limiters) {
     const app = express();
@@ -60,5 +65,24 @@ describe('lib/rate-limit', () => {
 
         expect((await request(app).get('/')).status).toBe(200);
         expect((await request(app).get('/')).status).toBe(429);
+    });
+
+    test('usa valores por defecto cuando no se pasan opciones', async () => {
+        const limiter = createRateLimiter();
+        expect(DEFAULT_WINDOW_MS).toBe(15 * 60 * 1000);
+        expect(DEFAULT_MAX).toBe(100);
+        expect(limiter.store).toBeDefined();
+
+        const app = appWith(limiter);
+        const res = await request(app).get('/');
+        expect(res.status).toBe(200);
+        expect(res.headers['ratelimit-limit']).toBe(String(DEFAULT_MAX));
+    });
+
+    test('permite override parcial de opciones', async () => {
+        const limiter = createRateLimiter({ max: 3 });
+        const app = appWith(limiter);
+
+        expect((await request(app).get('/')).headers['ratelimit-limit']).toBe('3');
     });
 });

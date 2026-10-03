@@ -92,3 +92,47 @@ describe('routes/status', () => {
         expect(res.body.avg_duration_seconds).toBe(120);
     });
 });
+
+describe('routes/status errores de lectura (defensivo)', () => {
+    const adminToken = 'test-admin-token-error';
+
+    beforeAll(async () => {
+        process.env.ADMIN_TOKEN = adminToken;
+        await db.initStorage();
+    });
+
+    afterAll(() => {
+        delete process.env.ADMIN_TOKEN;
+    });
+
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
+    test('GET /api/installations → 500 si readDB rechaza', async () => {
+        jest.spyOn(db, 'readDB').mockRejectedValueOnce(new Error('db caída'));
+        await request(app)
+            .get('/api/installations')
+            .set('Authorization', `Bearer ${adminToken}`)
+            .expect(500)
+            .expect(({ body }) => expect(body.error).toBe('Error interno'));
+    });
+
+    test('GET /api/installations/:token → 500 si readDB rechaza', async () => {
+        jest.spyOn(db, 'readDB').mockRejectedValueOnce(new Error('db caída'));
+        await request(app)
+            .get('/api/installations/0123456789abcdef0123456789abcdef')
+            .set('Authorization', `Bearer ${adminToken}`)
+            .expect(500)
+            .expect(({ body }) => expect(body.error).toBe('Error interno'));
+    });
+
+    test('GET /api/metrics → 500 si readDB rechaza', async () => {
+        jest.spyOn(db, 'readDB').mockRejectedValueOnce(new Error('db caída'));
+        await request(app)
+            .get('/api/metrics')
+            .set('Authorization', `Bearer ${adminToken}`)
+            .expect(500)
+            .expect(({ body }) => expect(body.error).toBe('Error interno'));
+    });
+});
